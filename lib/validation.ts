@@ -5,7 +5,7 @@ export const saveMemorySchema = z.object({
     .string()
     .trim()
     .min(1, "Memory content cannot be empty")
-    .max(10000, "Memory content is too long"),
+    .max(5000, "Memory content is too long"),
 });
 
 export const askQuestionSchema = z.object({

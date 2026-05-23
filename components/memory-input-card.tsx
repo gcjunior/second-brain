@@ -1,22 +1,32 @@
 "use client";
 
-import { Brain, Loader2, MessageCircleQuestion, Save } from "lucide-react";
+import {
+  CircleHelp,
+  ClipboardList,
+  Loader2,
+  Save,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ResultPanel } from "@/components/result-panel";
 import { VoiceInput } from "@/components/voice-input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type { AskResponse, MemorySource, SaveMemoryResponse } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+const MAX_SAVE_LENGTH = 5000;
+const MAX_ASK_LENGTH = 2000;
+
+const tabTriggerClassName = cn(
+  "flex-1 gap-2 rounded-none border-0 py-3.5 text-muted-foreground shadow-none",
+  "data-active:bg-transparent data-active:text-primary dark:data-active:bg-transparent",
+  "data-active:after:h-1 data-active:after:bg-primary data-active:after:opacity-100"
+);
 
 type Mode = "save" | "ask";
 
@@ -34,15 +44,19 @@ export function MemoryInputCard() {
   const [sources, setSources] = useState<MemorySource[]>([]);
 
   const isLoading = status.type === "loading";
+  const maxLength = mode === "save" ? MAX_SAVE_LENGTH : MAX_ASK_LENGTH;
   const placeholder =
     mode === "save"
       ? "Type a note, idea, or fact you want to remember..."
       : "Ask a question about your saved memories...";
+  const inputId = mode === "save" ? "memory-input" : "question-input";
+  const inputLabel = mode === "save" ? "Memory text" : "Question text";
 
   function appendTranscript(transcript: string) {
     setText((current) => {
       const trimmed = current.trim();
-      return trimmed ? `${trimmed} ${transcript}` : transcript;
+      const next = trimmed ? `${trimmed} ${transcript}` : transcript;
+      return next.slice(0, maxLength);
     });
   }
 
@@ -136,98 +150,96 @@ export function MemoryInputCard() {
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            {mode === "save" ? (
-              <Save className="size-5 text-violet-500" />
-            ) : (
-              <MessageCircleQuestion className="size-5 text-violet-500" />
-            )}
-            {mode === "save" ? "Save Memory" : "Ask Question"}
-          </CardTitle>
-          <CardDescription>
-            {mode === "save"
-              ? "Capture thoughts as memories you can recall later."
-              : "Ask natural-language questions grounded in your saved memories."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Tabs
-            value={mode}
-            onValueChange={(value) => {
-              setMode(value as Mode);
-              setStatus({ type: "idle" });
-              resetResults();
-            }}
+      <Card className="gap-0 overflow-hidden rounded-2xl border-border/60 py-0 shadow-sm">
+        <Tabs
+          value={mode}
+          onValueChange={(value) => {
+            setMode(value as Mode);
+            setStatus({ type: "idle" });
+            resetResults();
+          }}
+          className="gap-0"
+        >
+          <TabsList
+            variant="line"
+            className="h-auto w-full justify-stretch gap-0 border-b border-border bg-transparent px-2"
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="save" className="gap-2">
-                <Brain className="size-4" />
-                Save Memory
-              </TabsTrigger>
-              <TabsTrigger value="ask" className="gap-2">
-                <MessageCircleQuestion className="size-4" />
-                Ask Question
-              </TabsTrigger>
-            </TabsList>
+            <TabsTrigger value="save" className={tabTriggerClassName}>
+              <ClipboardList className="size-4" />
+              Save Memory
+            </TabsTrigger>
+            <TabsTrigger value="ask" className={tabTriggerClassName}>
+              <CircleHelp className="size-4" />
+              Ask Question
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="save" className="mt-4 space-y-4">
+          <CardContent className="space-y-4 pt-4 pb-6">
+            <div className="rounded-xl bg-muted/40 p-3 dark:bg-muted/20">
               <Textarea
-                id="memory-input"
-                aria-label="Memory text"
+                id={inputId}
+                aria-label={inputLabel}
                 placeholder={placeholder}
                 value={text}
                 onChange={(event) => setText(event.target.value)}
-                rows={6}
+                maxLength={maxLength}
+                rows={8}
                 disabled={isLoading}
-                className="min-h-36 resize-y"
+                className="min-h-44 resize-y border-0 bg-transparent px-1 py-2 shadow-none focus-visible:border-transparent focus-visible:ring-0 disabled:bg-transparent dark:bg-transparent dark:disabled:bg-transparent"
               />
-            </TabsContent>
+              <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-2">
+                <span
+                  className={cn(
+                    "text-xs tabular-nums text-muted-foreground",
+                    text.length >= maxLength && "text-destructive"
+                  )}
+                >
+                  {text.length} / {maxLength}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setText("")}
+                  disabled={isLoading || text.length === 0}
+                  className="h-7 gap-1.5 text-muted-foreground"
+                >
+                  <Trash2 className="size-3.5" />
+                  Clear
+                </Button>
+              </div>
+            </div>
 
-            <TabsContent value="ask" className="mt-4 space-y-4">
-              <Textarea
-                id="question-input"
-                aria-label="Question text"
-                placeholder={placeholder}
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                rows={6}
-                disabled={isLoading}
-                className="min-h-36 resize-y"
-              />
-            </TabsContent>
-          </Tabs>
+            <VoiceInput
+              onTranscript={appendTranscript}
+              disabled={isLoading}
+            />
 
-          <VoiceInput
-            onTranscript={appendTranscript}
-            disabled={isLoading}
-          />
-
-          <Button
-            onClick={handlePrimaryAction}
-            disabled={isLoading}
-            className="w-full bg-violet-600 text-white hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600"
-            size="lg"
-          >
-            {isLoading ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : mode === "save" ? (
-              <Save className="size-4" />
-            ) : (
-              <MessageCircleQuestion className="size-4" />
-            )}
-            {mode === "save" ? "Save Memory" : "Ask"}
-          </Button>
-
-          {status.type !== "idle" ? (
-            <Alert
-              variant={status.type === "error" ? "destructive" : "default"}
+            <Button
+              onClick={handlePrimaryAction}
+              disabled={isLoading}
+              className="w-full"
+              size="lg"
             >
-              <AlertDescription>{status.message}</AlertDescription>
-            </Alert>
-          ) : null}
-        </CardContent>
+              {isLoading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : mode === "save" ? (
+                <Save className="size-4" />
+              ) : (
+                <CircleHelp className="size-4" />
+              )}
+              {mode === "save" ? "Save Memory" : "Ask"}
+            </Button>
+
+            {status.type !== "idle" ? (
+              <Alert
+                variant={status.type === "error" ? "destructive" : "default"}
+              >
+                <AlertDescription>{status.message}</AlertDescription>
+              </Alert>
+            ) : null}
+          </CardContent>
+        </Tabs>
       </Card>
 
       <ResultPanel

@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Second Brain
 
-## Getting Started
+A single-user MVP web app for capturing personal memories (text or voice) and asking grounded questions later. Memories are stored and retrieved with [HydraDB](https://docs.hydradb.com/), and answers are generated with the OpenAI API.
 
-First, run the development server:
+## Stack
+
+- **Next.js** (App Router) + **React** + **TypeScript**
+- **Tailwind CSS** + **shadcn/ui**
+- **HydraDB** (`@hydradb/sdk`) for memory storage and semantic recall
+- **OpenAI** (`gpt-4o-mini`) for grounded answer generation
+- **Web Speech API** for browser voice input
+- **Zod** for request validation
+
+## Environment variables
+
+Create a `.env.local` file (see `.env.example`):
+
+| Variable | Description |
+| --- | --- |
+| `OPENAI_API_KEY` | OpenAI API key for answer generation |
+| `HYDRADB_API_KEY` | HydraDB API key from [app.hydradb.com](https://app.hydradb.com) |
+| `HYDRADB_PROJECT_ID` | HydraDB `tenant_id` for your workspace |
+| `HYDRADB_URL` | Optional custom API base URL (defaults to `https://api.hydradb.com`) |
+
+## How to run locally
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Copy environment variables and fill in your keys:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Ensure your HydraDB tenant exists and `HYDRADB_PROJECT_ID` matches your `tenant_id`.
+
+4. Start the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `POST /api/memories` — body: `{ "content": "..." }` — saves a memory to HydraDB
+- `POST /api/ask` — body: `{ "question": "..." }` — recalls memories and returns `{ answer, sources }`
 
-## Learn More
+## How to deploy to Vercel
 
-To learn more about Next.js, take a look at the following resources:
+1. Push this repository to GitHub.
+2. Import the project in [Vercel](https://vercel.com).
+3. Add the environment variables from `.env.example` in the Vercel project settings.
+4. Deploy. No extra services are required for this MVP.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Current limitations
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **No authentication** — anyone with the URL can use the app
+- **Single shared namespace** — all memories use one fixed sub-tenant (`mvp_user`)
+- **HydraDB indexing is async** — the app polls briefly after save; very new memories may need a few seconds before recall works reliably
+- **Voice input** — depends on browser support (Chrome/Edge work best; Safari support varies)
+- **No memory list/edit/delete UI** — only save and ask flows
+- **No file upload, PostgreSQL, Redis, or background jobs**
 
-## Deploy on Vercel
+## Future improvements
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- User accounts and per-user sub-tenants
+- Memory list, search, edit, and delete
+- Longer ingestion polling or status UI after save
+- Streaming answers from OpenAI
+- `infer: true` for richer memory extraction on conversational notes
+- Export/import of memories
+- Mobile-optimized voice UX

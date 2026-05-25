@@ -88,7 +88,7 @@ Second Brain is not a notes app. Notes apps solve storage. **Second Brain solves
 </div>
 
 <div align="center">
-<img src="docs/screenshots/SecondBrain_SaveMemory_Light.png" width="49%" alt="Save Memory tab light mode — text input with 5000 char limit, voice input via Web Speech API, Save Memory button triggers HydraDB ingestion with indexing poll">&nbsp;<img src="docs/screenshots/SecondBrain_AskQuestion_Light.png" width="49%" alt="Ask Question tab light mode — grounded answer panel and Retrieved Sources section showing HydraDB memory chunks with relevancy scores, answer strictly limited to saved memories">
+<img src="docs/screenshots/SecondBrain_SaveMemory_Light.png" width="49%" alt="Save Memory tab light mode — four workspace tabs, text input with 5000 char limit and #tags, voice input via Web Speech API, Save to Second Brain triggers HydraDB ingestion with indexing poll">&nbsp;<img src="docs/screenshots/SecondBrain_AskQuestion_Light.png" width="49%" alt="Ask Question tab light mode — grounded answer panel and Retrieved Sources with memory chunks, match scores, and source type badges, answer strictly limited to saved memories">
 <br><em>Save Memory and Ask Question — light mode.</em>
 </div>
 
@@ -99,7 +99,7 @@ Second Brain is not a notes app. Notes apps solve storage. **Second Brain solves
 **The bigger vision:** Today you type or speak memories manually. That's the MVP constraint. The real destination is ambient capture — a wearable that passively records what you say, hear, and do, feeding the same recall engine automatically. You'd never think to save anything. You'd just ask. The hard problem was always retrieval, not capture. Second Brain solves retrieval first. The input layer is a detail.
 
 <div align="center">
-<img src="docs/screenshots/SecondBrain_Vision.svg" width="100%" alt="Vision diagram: today input is manual text and voice, future input is ambient wearable capture — the HydraDB recall engine is identical in both cases, proving the architecture scales beyond MVP">
+<img src="docs/screenshots/SecondBrain_Vision.svg" width="100%" alt="Vision diagram: today input is text, voice, and file upload; future input is ambient wearable capture — the HydraDB recall engine is identical in both cases, proving the architecture scales beyond MVP">
 </div>
 
 ---
@@ -152,7 +152,7 @@ flowchart TB
 **Stack:** Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · shadcn/ui · HydraDB (`@hydradb/sdk`) · OpenAI `gpt-4o-mini` · Web Speech API · Zod · sonner · next-themes
 
 <div align="center">
-<img src="docs/screenshots/SecondBrain_SaveMemory_Dark.png" width="48%" alt="Save Memory tab dark mode — warm brown palette, voice input ready, character counter visible">&nbsp;&nbsp;<img src="docs/screenshots/SecondBrain_AskQuestion_Dark.png" width="48%" alt="Ask Question tab dark mode — Answer and Retrieved Sources panels ready, full light/dark theme toggle via next-themes">
+<img src="docs/screenshots/SecondBrain_SaveMemory_Dark.png" width="48%" alt="Save Memory tab dark mode — warm brown palette, four workspace tabs, voice input ready, character counter visible">&nbsp;&nbsp;<img src="docs/screenshots/SecondBrain_AskQuestion_Dark.png" width="48%" alt="Ask Question tab dark mode — Answer and Retrieved Sources with cited memory chunks and match scores, full light/dark theme toggle via next-themes">
 <br><em>Dark mode — theme persists across sessions via next-themes.</em>
 </div>
 

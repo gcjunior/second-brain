@@ -60,7 +60,7 @@
   <rect x="346" y="55" width="140" height="52" rx="10" fill="#E8F3EC" stroke="#3B6D11" stroke-width="1"/>
   <text font-family="Georgia,serif" font-size="10" font-weight="700" fill="#27500A" x="416" y="73" text-anchor="middle">recallPreferences()</text>
   <text font-family="Georgia,serif" font-size="9" fill="#3B6D11" x="416" y="89" text-anchor="middle">max_results: 6</text>
-  <text font-family="Georgia,serif" font-size="9" fill="#3B6D11" x="416" y="101" text-anchor="middle">mode: fast</text>
+  <text font-family="Georgia,serif" font-size="9" fill="#3B6D11" x="416" y="101" text-anchor="middle">#tag filter optional</text>
   <rect class="p3" x="342" y="51" width="148" height="60" rx="13" fill="none" stroke="#3B6D11" stroke-width="2.5" opacity="0"/>
 
   <!-- Arrow 3 -->

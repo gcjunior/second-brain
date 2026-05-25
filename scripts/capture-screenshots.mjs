@@ -8,6 +8,17 @@ const rootDir = join(__dirname, "..");
 const outDir = join(rootDir, "docs", "screenshots");
 const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
 
+const FILES = {
+  saveLight: "SecondBrain_SaveMemory_Light.png",
+  askLight: "SecondBrain_AskQuestion_Light.png",
+  saveDark: "SecondBrain_SaveMemory_Dark.png",
+  askDark: "SecondBrain_AskQuestion_Dark.png",
+  mobile: "SecondBrain_MobileImage.jpeg",
+};
+
+const sampleMemory =
+  "Met Alex at the conference in Austin #conference #networking. We discussed AI memory systems and agreed to follow up about HydraDB.";
+
 const mockAskResponse = {
   answer:
     "You met Alex at a conference in Austin in March 2025. You discussed AI memory systems and planned to follow up about HydraDB.",
@@ -18,6 +29,8 @@ const mockAskResponse = {
       content:
         "Met Alex at the conference in Austin. We discussed AI memory systems and agreed to follow up about HydraDB.",
       score: 0.92,
+      sourceType: "memory",
+      metadata: null,
     },
     {
       sourceId: "xyz789ghi012",
@@ -25,6 +38,8 @@ const mockAskResponse = {
       content:
         "Conference was at the Austin Convention Center. Great tacos nearby on Rainey Street.",
       score: 0.78,
+      sourceType: "memory",
+      metadata: null,
     },
   ],
 };
@@ -34,26 +49,16 @@ async function waitForApp(page) {
   await page.waitForSelector("#memory-input");
 }
 
-async function captureSaveTab(page) {
+async function setLightTheme(page) {
   await page.evaluate(() => {
     localStorage.setItem("theme", "light");
     document.documentElement.classList.remove("dark");
   });
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForSelector("#memory-input");
-
-  await page.getByRole("tab", { name: "Save Memory" }).click();
-  await page.locator("#memory-input").fill(
-    "Met Alex at the conference in Austin. We discussed AI memory systems and agreed to follow up about HydraDB."
-  );
-
-  await page.screenshot({
-    path: join(outDir, "save-tab.png"),
-    fullPage: true,
-  });
 }
 
-async function captureAskTabWithCitations(page) {
+async function mockAskRoute(page) {
   await page.route("**/api/ask", async (route) => {
     await route.fulfill({
       status: 200,
@@ -61,29 +66,39 @@ async function captureAskTabWithCitations(page) {
       body: JSON.stringify(mockAskResponse),
     });
   });
+}
 
-  await page.getByRole("tab", { name: "Ask Question" }).click();
-  await page.locator("#question-input").fill("Where did I meet Alex?");
-  await page.getByRole("button", { name: "Ask", exact: true }).click();
-  await page.getByText("Retrieved Sources").waitFor();
-  await page.getByText("Source 1").waitFor();
-
+async function captureSaveTab(page, filename, { fillText = sampleMemory } = {}) {
+  await page.getByRole("tab", { name: "Save Memory" }).click();
+  await page.waitForSelector("#memory-input");
+  if (fillText) {
+    await page.locator("#memory-input").fill(fillText);
+  }
   await page.screenshot({
-    path: join(outDir, "ask-tab-citations.png"),
+    path: join(outDir, filename),
     fullPage: true,
   });
 }
 
-async function captureDarkMode(page) {
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
-  await page.waitForFunction(() =>
-    document.documentElement.classList.contains("dark")
-  );
+async function captureAskTabWithCitations(page, filename) {
+  await page.getByRole("tab", { name: "Ask Question" }).click();
+  await page.waitForSelector("#question-input");
+  await page.locator("#question-input").fill("Where did I meet Alex?");
+  await page.getByRole("button", { name: "Ask Second Brain" }).click();
+  await page.getByRole("heading", { name: "Retrieved Sources" }).waitFor();
+  await page.getByText("Source 1", { exact: true }).waitFor();
 
   await page.screenshot({
-    path: join(outDir, "dark-mode.png"),
+    path: join(outDir, filename),
     fullPage: true,
   });
+}
+
+async function switchToDarkMode(page) {
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await page.waitForFunction(() =>
+    document.documentElement.classList.contains("dark"),
+  );
 }
 
 async function captureMobile(browser) {
@@ -95,12 +110,14 @@ async function captureMobile(browser) {
 
   await waitForApp(page);
   await page.locator("#memory-input").fill(
-    "Quick note from mobile: remember to buy groceries and call Alex about the HydraDB demo."
+    "Quick note from mobile: remember to buy groceries and call Alex about the HydraDB demo.",
   );
 
   await page.screenshot({
-    path: join(outDir, "mobile.png"),
+    path: join(outDir, FILES.mobile),
     fullPage: true,
+    type: "jpeg",
+    quality: 90,
   });
 
   await context.close();
@@ -117,9 +134,16 @@ async function main() {
 
   try {
     await waitForApp(page);
-    await captureSaveTab(page);
-    await captureAskTabWithCitations(page);
-    await captureDarkMode(page);
+    await setLightTheme(page);
+    await captureSaveTab(page, FILES.saveLight);
+
+    await mockAskRoute(page);
+    await captureAskTabWithCitations(page, FILES.askLight);
+
+    await switchToDarkMode(page);
+    await captureSaveTab(page, FILES.saveDark, { fillText: "" });
+    await captureAskTabWithCitations(page, FILES.askDark);
+
     await captureMobile(browser);
     console.log(`Screenshots saved to ${outDir}`);
   } finally {

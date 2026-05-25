@@ -14,6 +14,7 @@ import {
   memoryMatchesTags,
   parseMemoryContent,
 } from "@/lib/memory-content";
+import type { GraphTriplet } from "@/lib/graph-data";
 import type { MemorySource } from "@/lib/types";
 
 const DEFAULT_SUB_TENANT_ID = "demo_user";
@@ -514,14 +515,11 @@ export async function listDemoSubTenants() {
   });
 }
 
-function emptyBrainGraphPayload() {
-  return {
-    relations: [],
-    superNodes: [],
-    nextCursor: null,
-    isTruncated: false,
-  };
-}
+type GraphRelationsPayload = {
+  relations: (GraphTriplet | null)[];
+  next_cursor?: number | null;
+  is_truncated?: boolean;
+};
 
 function isRecoverableGraphError(error: unknown): boolean {
   if (!(error instanceof HydraDBError)) {
@@ -532,6 +530,24 @@ function isRecoverableGraphError(error: unknown): boolean {
   return error.statusCode === 404 || error.statusCode === 500;
 }
 
+function getGraphRelationsPayload(
+  result: PromiseSettledResult<GraphRelationsPayload>,
+): GraphRelationsPayload {
+  if (result.status === "fulfilled") {
+    return result.value;
+  }
+
+  if (isRecoverableGraphError(result.reason)) {
+    return {
+      relations: [],
+      next_cursor: null,
+      is_truncated: false,
+    };
+  }
+
+  throw result.reason;
+}
+
 export async function fetchBrainGraph(options?: {
   sourceId?: string;
   limit?: number;
@@ -539,14 +555,27 @@ export async function fetchBrainGraph(options?: {
 }) {
   const client = createClient();
   const { tenant_id, sub_tenant_id } = getNamespaceMetadata();
+  const limit = options?.limit ?? BRAIN_GRAPH_LIMIT;
 
-  const [relationsResult, superNodesResult] = await Promise.allSettled([
+  const [
+    memoryRelationsResult,
+    knowledgeRelationsResult,
+    superNodesResult,
+  ] = await Promise.allSettled([
     client.fetch.graphRelationsBySourceId({
       tenant_id,
       sub_tenant_id,
       is_memory: true,
       source_id: options?.sourceId,
-      limit: options?.limit ?? BRAIN_GRAPH_LIMIT,
+      limit,
+      cursor: options?.cursor,
+    }),
+    client.fetch.graphRelationsBySourceId({
+      tenant_id,
+      sub_tenant_id,
+      is_memory: false,
+      source_id: options?.sourceId,
+      limit,
       cursor: options?.cursor,
     }),
     client.graphHealth.getSuperNodes({
@@ -556,24 +585,23 @@ export async function fetchBrainGraph(options?: {
     }),
   ]);
 
-  if (relationsResult.status === "rejected") {
-    if (isRecoverableGraphError(relationsResult.reason)) {
-      return emptyBrainGraphPayload();
-    }
-
-    throw relationsResult.reason;
-  }
-
-  const relationsResponse = relationsResult.value;
+  const memoryRelations = getGraphRelationsPayload(memoryRelationsResult);
+  const knowledgeRelations = getGraphRelationsPayload(knowledgeRelationsResult);
   const superNodes =
     superNodesResult.status === "fulfilled"
       ? (superNodesResult.value.super_nodes ?? [])
       : [];
 
   return {
-    relations: relationsResponse.relations ?? [],
+    relations: [
+      ...(memoryRelations.relations ?? []),
+      ...(knowledgeRelations.relations ?? []),
+    ],
     superNodes,
-    nextCursor: relationsResponse.next_cursor ?? null,
-    isTruncated: relationsResponse.is_truncated ?? false,
+    nextCursor:
+      memoryRelations.next_cursor ?? knowledgeRelations.next_cursor ?? null,
+    isTruncated:
+      Boolean(memoryRelations.is_truncated) ||
+      Boolean(knowledgeRelations.is_truncated),
   };
 }

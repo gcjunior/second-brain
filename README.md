@@ -8,30 +8,62 @@
   Live demo: https://second-brain-blue-eight.vercel.app/
 
   WHAT IT DOES:
-  A personal memory recall app. Users save notes (text or voice). Later they ask
-  plain-language questions. The app retrieves semantically relevant memory chunks
-  from HydraDB and generates a grounded, cited answer via OpenAI gpt-4o-mini.
+  A personal memory recall app with four input modalities: typed text, browser voice
+  (Web Speech API), uploaded audio files (→ OpenAI Whisper transcription), and uploaded
+  Markdown knowledge documents. Users save memories via any of these modes. Later they ask
+  plain-language questions — with optional #hashtag filtering. The app runs dual parallel
+  recall (fullRecall + recallPreferences via Promise.allSettled), merges and deduplicates
+  results, and generates a grounded, cited answer via OpenAI gpt-4o-mini at temperature 0.2.
   The answer is strictly limited to what the user saved — no hallucination.
+  A live knowledge graph tab (react-force-graph-2d) visualizes entity nodes, relationship
+  edges, and HydraDB super-nodes that emerge automatically from the saved memory corpus.
 
   CORE INNOVATION:
   - HydraDB-native RAG: no LangChain, no Pinecone, no embedding boilerplate
-  - Indexing-aware save: server polls verifyProcessing() until memory is searchable
+  - Indexing-aware save: server polls verifyProcessing() until memory is searchable —
+    solves the silent "save then immediately query returns nothing" failure that plagues
+    fire-and-forget RAG integrations
+  - Dual parallel recall: fullRecall (semantic + graph context) and recallPreferences run
+    simultaneously via Promise.allSettled; results are merged, deduplicated, and sorted by
+    relevancy score — captures graph-contextualized and preference-tuned matches in one shot
+  - Knowledge graph visualization: react-force-graph-2d renders entity nodes + relationship
+    edges from HydraDB graphRelationsBySourceId (memory + knowledge) and getSuperNodes;
+    graph emerges automatically from memory corpus, no manual tagging required
   - Grounding constraint: system prompt forbids GPT-4o-mini from drawing on training data
-  - Voice input via Web Speech API: zero cost, no backend, browser-native
-  - Vision: MVP input (text/voice) is deliberately minimal — architecture is designed for
-    ambient capture (wearables, always-on recording) where the recall engine remains unchanged.
+  - Four input modalities: text, browser voice (Web Speech API, zero cost), audio file upload
+    (→ Whisper API, cross-browser), Markdown knowledge upload (idempotent via SHA-256 sourceId)
+  - Hashtag tagging: #tag anywhere in a memory auto-tags it; queries with #tag filter recall
+    to only matching memories via memoryMatchesTags()
+  - Vision: MVP input is deliberately minimal — architecture is designed for ambient capture
+    (wearables, always-on recording) where the recall engine remains unchanged.
     The hard problem is retrieval. That's what this solves.
 
+  TECHNICAL HIGHLIGHTS (for code deep-dive):
+  - 5 Route Handlers: POST /api/memories, POST /api/ask, POST /api/audio,
+    POST /api/knowledge, GET /api/brain
+  - lib/hydradb.ts: waitForIndexing() polling loop, Promise.allSettled dual-recall,
+    sanitizeHydraMetadata(), SHA-256 stable sourceId for idempotent knowledge uploads,
+    isRecoverableRecallError/isRecoverableGraphError typed fallbacks
+  - lib/openai.ts: generateGroundedAnswer() at temperature 0.2, transcribeAudioFile()
+    with context prompt support
+  - lib/validation.ts: Zod schemas for all endpoints
+  - components/brain-panel.tsx: react-force-graph-2d, ResizeObserver, custom canvas
+    node rendering with super-node highlighting, click-to-select
+
   RUBRIC SELF-ASSESSMENT:
-  - Innovation & Originality (25%): HydraDB-native memory pipeline, polling pattern, grounded recall without agent framework
-  - Technical Execution (25%): Two clean endpoints, TypeScript, Zod validation, indexing poll, temperature-constrained generation
-  - Functional Completeness (20%): Core save→ask loop works end-to-end. Demo script below.
-  - Problem-Solution Fit (20%): Personal pain point — notes written, never recalled. Solves retrieval, not storage.
-  - UX & Design (5%): Light/dark mode, voice input, responsive mobile layout, cited sources displayed
-  - Learning & Ambition (5%): See "What We Learned" section near bottom
+  - Innovation & Originality (25%): Dual parallel recall, knowledge graph visualization,
+    indexing-aware save polling, four input modalities — none of this is standard boilerplate
+  - Technical Execution (25%): 5 endpoints, TypeScript, Zod, parallel Promise.allSettled,
+    SHA-256 dedup, typed error recovery, temperature-constrained generation
+  - Functional Completeness (20%): Full save→ask→graph loop works end-to-end. Demo below.
+  - Problem-Solution Fit (20%): Personal pain point — notes written, never recalled.
+    Solves retrieval, not storage.
+  - UX & Design (5%): Light + dark mode, voice input, responsive mobile layout,
+    cited sources with relevancy scores, live interactive graph
+  - Learning & Ambition (5%): See "Building This Was Actually Interesting" section
 
   CONSTRAINTS (MVP):
-  Single-user, no auth, text and voice input only. All memories share sub-tenant "mvp_user".
+  Single-user, no auth, all input modes share sub-tenant "demo_user".
 
   DEMO (30 seconds):
   1. Open https://second-brain-blue-eight.vercel.app/
@@ -39,6 +71,7 @@
   3. Wait for success toast (~2–4 seconds indexing)
   4. Ask Question tab → ask: "When is my dentist appointment?"
   5. Confirm answer references June 2nd. Retrieved Sources shows matching chunk with score.
+  6. Open the Brain tab to see the knowledge graph update with entities from your memories.
 -->
 
 <div align="center">
@@ -49,7 +82,6 @@
 [![HydraDB](https://img.shields.io/badge/Powered%20by-HydraDB-4A90D9?style=for-the-badge)](https://hydradb.com)
 [![OpenAI](https://img.shields.io/badge/AI-GPT--4o--mini-10A37F?style=for-the-badge)](https://openai.com)
 [![Voice Input](https://img.shields.io/badge/Input-Text%20%2B%20Voice-blueviolet?style=for-the-badge)]()
-[![MIT License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)]()
 
 [The Problem](#the-problem) • [Try It](#try-it----30-second-demo) • [How It's Built](#how-its-built) • [Vision](#the-bigger-vision) • [Why Cursor](#why-cursor-was-essential)
 
@@ -79,16 +111,15 @@ Second Brain is not a notes app. Notes apps solve storage. **Second Brain solves
 | Keyword search | ✅ | ✅ |
 | Ask a natural question | ❌ | ✅ |
 | Answer grounded in *your* notes | ❌ | ✅ |
-| Voice input | Limited | ✅ Built-in, free |
+| Voice input (browser) | Limited | ✅ Built-in, free |
+| Voice input (audio upload + Whisper) | ❌ | ✅ Cross-browser, high accuracy |
+| Markdown knowledge upload | ❌ | ✅ |
+| #hashtag memory tagging + filtering | ❌ | ✅ |
 | Sources cited with relevancy scores | ❌ | ✅ |
+| Live knowledge graph visualization | ❌ | ✅ |
 
 <div align="center">
-<img src="docs/screenshots/SecondBrain_MobileImage.jpeg" width="320" alt="Mobile UI showing Save Memory tab with voice input ready — responsive layout works on phone with zero setup">
-<br><em>Mobile — save a thought in seconds, voice input ready.</em>
-</div>
-
-<div align="center">
-<img src="docs/screenshots/SecondBrain_SaveMemory_Light.png" width="49%" alt="Save Memory tab light mode — four workspace tabs, text input with 5000 char limit and #tags, voice input via Web Speech API, Save to Second Brain triggers HydraDB ingestion with indexing poll">&nbsp;<img src="docs/screenshots/SecondBrain_AskQuestion_Light.png" width="49%" alt="Ask Question tab light mode — grounded answer panel and Retrieved Sources with memory chunks, match scores, and source type badges, answer strictly limited to saved memories">
+<img src="docs/screenshots/MainIdea_LightMode.png" width="100%" alt="Workspace light mode — Save Memory tab with text input, voice waveform input with Idle status and Listen button, 5000 char limit, Save to Second Brain button — shows full capture flow before submission">
 <br><em>Save Memory and Ask Question — light mode.</em>
 </div>
 
@@ -100,6 +131,11 @@ Second Brain is not a notes app. Notes apps solve storage. **Second Brain solves
 
 <div align="center">
 <img src="docs/screenshots/SecondBrain_Vision.svg" width="100%" alt="Vision diagram: today input is text, voice, and file upload; future input is ambient wearable capture — the HydraDB recall engine is identical in both cases, proving the architecture scales beyond MVP">
+</div>
+
+<div align="center">
+<img src="docs/screenshots/SecondBrain_MobileImage.jpeg" width="320" alt="Mobile UI showing Save Memory tab with voice input ready — responsive layout works on phone with zero setup">
+<br><em>Mobile — save a thought in seconds, voice input ready.</em>
 </div>
 
 ---
@@ -135,6 +171,9 @@ flowchart TB
   subgraph nextjs [Next.js App Router]
     MemAPI["POST /api/memories"]
     AskAPI["POST /api/ask"]
+    AudioAPI["POST /api/audio"]
+    KnowledgeAPI["POST /api/knowledge"]
+    BrainAPI["GET /api/brain"]
   end
   subgraph libLayer [lib]
     Hydra[lib/hydradb.ts]
@@ -142,19 +181,22 @@ flowchart TB
   end
   UI --> MemAPI
   UI --> AskAPI
+  UI --> AudioAPI
+  UI --> KnowledgeAPI
+  UI --> BrainAPI
   MemAPI --> Hydra
   AskAPI --> Hydra
+  AudioAPI --> OAI
+  AudioAPI --> Hydra
+  KnowledgeAPI --> Hydra
+  BrainAPI --> Hydra
   AskAPI --> OAI
   Hydra --> HydraDB[(HydraDB API)]
   OAI --> OpenAIAPI[(OpenAI API)]
 ```
 
-**Stack:** Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · shadcn/ui · HydraDB (`@hydradb/sdk`) · OpenAI `gpt-4o-mini` · Web Speech API · Zod · sonner · next-themes
+**Stack:** Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · shadcn/ui · HydraDB (`@hydradb/sdk`) · OpenAI `gpt-4o-mini` + Whisper · Web Speech API · react-force-graph-2d · Zod · sonner · next-themes
 
-<div align="center">
-<img src="docs/screenshots/SecondBrain_SaveMemory_Dark.png" width="48%" alt="Save Memory tab dark mode — warm brown palette, four workspace tabs, voice input ready, character counter visible">&nbsp;&nbsp;<img src="docs/screenshots/SecondBrain_AskQuestion_Dark.png" width="48%" alt="Ask Question tab dark mode — Answer and Retrieved Sources with cited memory chunks and match scores, full light/dark theme toggle via next-themes">
-<br><em>Dark mode — theme persists across sessions via next-themes.</em>
-</div>
 
 ---
 
@@ -190,13 +232,24 @@ Most RAG integrations fire-and-forget on save. If you query immediately, you get
 Browser
   └─► POST /api/ask  { question: string }
         └─► searchMemories()
-              ├─ hydra.recall.recallPreferences({
-              │    query: question,
-              │    sub_tenant_id: "mvp_user",
-              │    max_results: 6,
-              │    mode: "fast"
-              │  })
-              └─► top 6 chunks returned with scores
+              ├─ parseMemoryContent()  ← strips #hashtags, builds tag filter
+              │
+              ├─ Promise.allSettled([
+              │    hydra.recall.fullRecall({          ← semantic + graph context
+              │      query, sub_tenant_id,
+              │      max_results, mode: "fast",
+              │      alpha: "auto", graph_context: true
+              │    }),
+              │    hydra.recall.recallPreferences({   ← preference-tuned recall
+              │      query, sub_tenant_id,
+              │      max_results, mode: "fast"
+              │    })
+              │  ])
+              │
+              ├─ merge knowledge + memory chunks
+              ├─ filter by #hashtags (if any)
+              ├─ deduplicate by sourceId + content
+              └─► top N chunks sorted by relevancy score
                     └─► generateGroundedAnswer()
                           ├─ System prompt: "Answer ONLY from the
                           │   following memories. Do not invent."
@@ -204,11 +257,37 @@ Browser
                           └─► Response: { answer, sources[] }
 ```
 
-The system prompt explicitly forbids GPT-4o-mini from drawing on its training data. If no relevant memory exists, it returns "I don't have a memory about that." It will not hallucinate. `temperature: 0.2` further constrains creative deviation for a recall task that demands precision over creativity.
+Two recall modes run simultaneously via `Promise.allSettled` — `fullRecall` captures graph-contextualized semantic matches while `recallPreferences` applies preference tuning. Results are merged across both knowledge and memory namespaces, deduplicated by `sourceId + content`, and sorted by relevancy score before being passed to the LLM. Running both in parallel adds zero latency over running either alone.
+
+The system prompt explicitly forbids GPT-4o-mini from drawing on its training data. If no relevant memory exists, it returns a clean "I don't have a memory about that" rather than hallucinating. `temperature: 0.2` further constrains creative deviation for a recall task that demands precision over creativity.
 
 <div align="center">
 <img src="docs/screenshots/SecondBrain_AskFlow.svg" width="100%" alt="Animated ask flow diagram: User question → POST /api/ask → recallPreferences() returns top 6 chunks with scores → GPT-4o-mini at temperature 0.2 answers strictly from retrieved context — system prompt forbids hallucination, returns cited sources">
 </div>
+
+---
+
+### Brain Graph — Live Knowledge Map
+
+Every saved memory and uploaded document is indexed into a semantic knowledge graph by HydraDB. The **Brain** tab renders this graph live using `react-force-graph-2d`: entity nodes, directed relationship edges, and HydraDB's "super nodes" — high-connectivity concepts that emerge automatically across your memory corpus, with no manual tagging required.
+
+```
+GET /api/brain
+  └─► fetchBrainGraph()
+        ├─ Promise.allSettled([
+        │    hydra.fetch.graphRelationsBySourceId({ is_memory: true })   ← memory relations
+        │    hydra.fetch.graphRelationsBySourceId({ is_memory: false })  ← knowledge relations
+        │    hydra.graphHealth.getSuperNodes()                           ← high-degree concepts
+        │  ])
+        └─► merged relations + super nodes → BrainGraphResponse
+              └─► ForceGraph2D renders interactive node-link diagram
+                    ├─ Document nodes (amber)  vs  Entity nodes (orange)
+                    ├─ Directional edges with arrow heads
+                    ├─ Click-to-select node detail
+                    └─ ResizeObserver keeps canvas fit to container
+```
+
+The graph has no fixed schema. Save a note mentioning "Alex from the Austin conference" and later one about "Austin startup ecosystem" — HydraDB connects them. The super nodes surface the most connected concepts across your entire brain, giving a map of what you actually think about most.
 
 ---
 
@@ -221,9 +300,10 @@ HydraDB replaces the traditional `embedding model → vector DB → retrieval pi
 | Embedding management | Manual (OpenAI ada-002 or local model) | Handled internally |
 | Chunking strategy | You decide (fixed, semantic, recursive) | Handled on ingest |
 | Index freshness | Asynchronous, opaque — silent failures common | `verifyProcessing` exposes status explicitly |
-| Query interface | Raw vector similarity + manual reranking | `recallPreferences` with mode control |
+| Query interface | Raw vector similarity + manual reranking | `fullRecall` (graph-contextualized) + `recallPreferences` |
 | Sub-tenant isolation | Custom metadata filtering required | Native `sub_tenant_id` parameter |
-| Developer overhead | LangChain + Pinecone + agent framework | Two API calls: `addMemory` + `recallPreferences` |
+| Knowledge graph | Build your own (Neo4j, custom extraction) | `graphRelationsBySourceId` + `getSuperNodes` built-in |
+| Developer overhead | LangChain + Pinecone + agent framework + graph DB | Five focused API calls, ~200 lines of TypeScript |
 
 ---
 
@@ -240,9 +320,19 @@ For a task where the answer is explicitly provided in the retrieved context, the
 
 ---
 
-### Voice Input — Web Speech API
+### Voice Input — Two Modes
 
-Browser-native transcription. No backend round-trip. No audio leaves the device until the user chooses to save. Zero cost at any scale. Best support in Chrome and Edge; Safari support is partial. A production build would replace this with Whisper API for accuracy and cross-browser reliability.
+**Browser Speech API (free, instant):** Browser-native transcription with no backend round-trip. No audio leaves the device until the user chooses to save. Zero cost at any scale. Best support in Chrome and Edge; Safari support is partial.
+
+**Audio file upload → Whisper (accurate, cross-browser):** `POST /api/audio` accepts audio files, sends them to OpenAI Whisper (`whisper-1`) for transcription with optional context prompting for domain-specific accuracy, then saves the transcript as a tagged memory with full audio metadata (file name, content type, file size). This path works on any browser and produces significantly higher accuracy than the Web Speech API on accented speech or technical vocabulary.
+
+---
+
+### Hashtag Tagging System
+
+Any word beginning with `#` in a memory or question is parsed as a tag by `parseMemoryContent()` in `lib/memory-content.ts`. Tags are stripped from the display text and stored as metadata on the HydraDB memory.
+
+When a question contains `#hashtags`, `searchMemories()` routes through `memoryMatchesTags()` to filter recalled chunks to only those whose metadata or content matches the requested tags — narrowing results without changing the recall query itself. This gives users a lightweight personal taxonomy without any dedicated tagging UI.
 
 ---
 
@@ -250,13 +340,19 @@ Browser-native transcription. No backend round-trip. No audio leaves the device 
 
 | Path | Role |
 | --- | --- |
-| `app/page.tsx` | Home UI (save / ask tabs) |
-| `app/api/memories/route.ts` | Save endpoint |
-| `app/api/ask/route.ts` | Ask endpoint |
-| `lib/hydradb.ts` | HydraDB client, save, recall, indexing poll |
-| `lib/openai.ts` | Grounded answer generation |
+| `app/page.tsx` | Home UI (save / ask / brain tabs) |
+| `app/api/memories/route.ts` | Text memory save endpoint |
+| `app/api/ask/route.ts` | Dual-recall ask endpoint |
+| `app/api/audio/route.ts` | Audio upload → Whisper → save memory |
+| `app/api/knowledge/route.ts` | Markdown knowledge upload |
+| `app/api/brain/route.ts` | Knowledge graph fetch |
+| `lib/hydradb.ts` | HydraDB client, save, dual-recall, indexing poll, graph |
+| `lib/openai.ts` | Grounded answer generation + Whisper transcription |
+| `lib/memory-content.ts` | Hashtag parsing, tag filtering, memory text formatting |
+| `lib/graph-data.ts` | Graph node/link types and transforms |
 | `lib/validation.ts` | Zod schemas (5000 / 2000 char limits) |
-| `components/` | UI (voice input, result panel, shadcn primitives) |
+| `components/brain-panel.tsx` | react-force-graph-2d knowledge graph viewer |
+| `components/` | Voice input, result panel, upload, shadcn primitives |
 
 ---
 
@@ -304,35 +400,24 @@ npm run dev
 
 #### `POST /api/memories`
 
-Saves a memory to HydraDB and waits briefly for indexing. Hashtags in `content` (e.g. `#conference`) are extracted into `additional_metadata.tags` and stripped from the visible text. The indexed body also appends a searchable `Tags: …` line so tag-based recall works. Each memory gets `additional_metadata.created_at` (ISO-8601 UTC) at save time.
-
 ```bash
 curl -X POST http://localhost:3000/api/memories \
   -H "Content-Type: application/json" \
-  -d '{"content": "Met Alex at the conference in Austin #conference #networking"}'
+  -d '{"content": "Met Alex at the conference in Austin in March 2025."}'
 ```
 
-Stored text: `Met Alex at the conference in Austin`. Indexed body: `Met Alex at the conference in Austin\n\nTags: conference, networking`. Metadata tags: `conference`, `networking`.
-
 ```json
-{
-  "sourceId": "abc123",
-  "status": "completed",
-  "message": "Memory saved with tags: conference, networking",
-  "tags": ["conference", "networking"]
-}
+{ "sourceId": "abc123", "status": "completed", "message": "Memory saved successfully" }
 ```
 
 Limit: 1–5000 characters. Returns `400` on validation error, `500` on server error.
 
 #### `POST /api/ask`
 
-Hashtags in `question` (e.g. `#conference`) narrow recall to memories saved with those tags. Tags are stripped from the question text but included in the semantic query; matching checks the indexed `Tags: …` line and `additional_metadata.tags`.
-
 ```bash
 curl -X POST http://localhost:3000/api/ask \
   -H "Content-Type: application/json" \
-  -d '{"question": "#conference Where did I meet Alex?"}'
+  -d '{"question": "Where did I meet Alex?"}'
 ```
 
 ```json

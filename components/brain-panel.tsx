@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Brain, Info, Loader2, Network, RefreshCw } from "lucide-react";
+import { Brain, Loader2, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { BrainGraphResponse } from "@/lib/types";
@@ -22,7 +22,6 @@ export function BrainPanel() {
   const [loading, setLoading] = useState(true);
   const [dimensions, setDimensions] = useState({ width: 640, height: 480 });
   const [selectedNode, setSelectedNode] = useState<ForceGraphNode | null>(null);
-
   const fetchGraph = useCallback(async (showLoading = false) => {
     if (showLoading) {
       setLoading(true);
@@ -176,10 +175,10 @@ export function BrainPanel() {
         </Button>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_240px]">
+      <div>
         <div
           ref={containerRef}
-          className="h-[min(62vh,520px)] min-h-96 overflow-hidden rounded-2xl border border-border/70 bg-[radial-gradient(circle_at_center,oklch(0.955_0.045_68),oklch(0.995_0.012_80))] dark:bg-[radial-gradient(circle_at_center,oklch(0.25_0.035_58),oklch(0.15_0.012_65))]"
+          className="h-[min(80vh,720px)] min-h-120 overflow-hidden rounded-2xl border border-border/70 bg-[radial-gradient(circle_at_center,oklch(0.955_0.045_68),oklch(0.995_0.012_80))] dark:bg-[radial-gradient(circle_at_center,oklch(0.25_0.035_58),oklch(0.15_0.012_65))]"
         >
         <ForceGraph2D
           width={dimensions.width}
@@ -242,36 +241,6 @@ export function BrainPanel() {
         />
       </div>
 
-        <aside className="rounded-2xl border border-border/70 bg-background/85 p-4 shadow-sm">
-          {selectedNode ? (
-            <div className="space-y-4">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Network className="size-5" aria-hidden />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Selected node</p>
-                <h4 className="mt-1 text-base font-semibold text-foreground">{selectedNode.label}</h4>
-                <p className="mt-1 text-sm text-muted-foreground capitalize">{selectedNode.type}</p>
-              </div>
-              <div className="rounded-xl bg-muted/70 p-3 text-xs leading-5 text-muted-foreground">
-                Click nearby nodes to follow the trail of related memories and documents.
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Info className="size-5" aria-hidden />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Graph insight</p>
-                <h4 className="mt-1 text-base font-semibold text-foreground">Click any node</h4>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  The explorer turns saved notes into a browsable relationship map.
-                </p>
-              </div>
-            </div>
-          )}
-        </aside>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/70 bg-background/70 px-4 py-3">

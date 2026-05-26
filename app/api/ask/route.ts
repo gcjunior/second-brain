@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guardApprovedApi, logAppAccess } from "@/lib/auth";
 import { MAX_MEMORY_TAGS } from "@/lib/constants";
 import { searchMemories } from "@/lib/hydradb";
 import { getQuestionForAnswer } from "@/lib/memory-content";
@@ -8,6 +9,11 @@ import { askQuestionSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
+    const auth = await guardApprovedApi();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
     const body = await request.json();
     const parsed = askQuestionSchema.safeParse(body);
 
@@ -24,7 +30,12 @@ export async function POST(request: Request) {
       MAX_MEMORY_TAGS,
     );
 
-    const sources = await searchMemories(parsed.data.question);
+    await logAppAccess({ route: "/api/ask" });
+
+    const sources = await searchMemories(
+      auth.user.id,
+      parsed.data.question,
+    );
     const answer = await generateGroundedAnswer(questionForAnswer, sources);
 
     return NextResponse.json<AskResponse>({ answer, sources });

@@ -17,14 +17,12 @@ import {
 import type { GraphTriplet } from "@/lib/graph-data";
 import type { MemorySource } from "@/lib/types";
 
-const DEFAULT_SUB_TENANT_ID = "demo_user";
 let ensureTenantPromise: Promise<void> | null = null;
 
 function getConfig() {
   const apiKey = process.env.HYDRADB_API_KEY;
   const tenantId = process.env.HYDRADB_PROJECT_ID;
   const baseUrl = process.env.HYDRADB_URL;
-  const subTenantId = process.env.HYDRADB_SUB_TENANT_ID ?? DEFAULT_SUB_TENANT_ID;
 
   if (!apiKey) {
     throw new Error("HYDRADB_API_KEY is not configured");
@@ -33,7 +31,7 @@ function getConfig() {
     throw new Error("HYDRADB_PROJECT_ID is not configured");
   }
 
-  return { apiKey, tenantId, baseUrl, subTenantId };
+  return { apiKey, tenantId, baseUrl };
 }
 
 function createClient() {
@@ -49,14 +47,14 @@ function getTenantId() {
   return getConfig().tenantId;
 }
 
-function getSubTenantId() {
-  return getConfig().subTenantId;
+function getSubTenantId(userId: string) {
+  return `user_${userId}`;
 }
 
-function getNamespaceMetadata() {
+function getNamespaceMetadata(userId: string) {
   return {
     tenant_id: getTenantId(),
-    sub_tenant_id: getSubTenantId(),
+    sub_tenant_id: getSubTenantId(userId),
   };
 }
 
@@ -66,9 +64,12 @@ const READY_STATUSES = new Set([
   "success",
 ]);
 
-async function waitForIndexing(sourceId: string): Promise<string> {
+async function waitForIndexing(
+  userId: string,
+  sourceId: string,
+): Promise<string> {
   const client = createClient();
-  const { tenant_id, sub_tenant_id } = getNamespaceMetadata();
+  const { tenant_id, sub_tenant_id } = getNamespaceMetadata(userId);
   const maxAttempts = INDEXING_MAX_ATTEMPTS;
   const delayMs = INDEXING_DELAY_MS;
 
@@ -116,10 +117,13 @@ function sourceIdForFile(fileName: string, content: string) {
   return `md_${normalizedName || "upload"}_${digest}`;
 }
 
-function metadataWithNamespace(metadata: Record<string, unknown>) {
+function metadataWithNamespace(
+  userId: string,
+  metadata: Record<string, unknown>,
+) {
   return sanitizeHydraMetadata({
     ...metadata,
-    ...getNamespaceMetadata(),
+    ...getNamespaceMetadata(userId),
   });
 }
 
@@ -191,7 +195,10 @@ async function ensureTenant() {
   return ensureTenantPromise;
 }
 
-export async function saveMemory(rawContent: string): Promise<{
+export async function saveMemory(
+  userId: string,
+  rawContent: string,
+): Promise<{
   sourceId: string;
   status: string;
   tags: string[];
@@ -205,14 +212,17 @@ export async function saveMemory(rawContent: string): Promise<{
   }
 
   const client = createClient();
-  const { tenant_id, sub_tenant_id } = getNamespaceMetadata();
+  const { tenant_id, sub_tenant_id } = getNamespaceMetadata(userId);
   await ensureTenant();
 
-  const additional_metadata: Record<string, unknown> = metadataWithNamespace({
-    app: "second-brain-mvp",
-    created_at: new Date().toISOString(),
-    source_type: "text_memory",
-  });
+  const additional_metadata: Record<string, unknown> = metadataWithNamespace(
+    userId,
+    {
+      app: "second-brain-mvp",
+      created_at: new Date().toISOString(),
+      source_type: "text_memory",
+    },
+  );
 
   if (tags.length > 0) {
     additional_metadata.tags = tags;
@@ -238,7 +248,7 @@ export async function saveMemory(rawContent: string): Promise<{
     throw new Error(response.message || "Failed to save memory");
   }
 
-  const indexingStatus = await waitForIndexing(result.source_id);
+  const indexingStatus = await waitForIndexing(userId, result.source_id);
 
   return {
     sourceId: result.source_id,
@@ -247,7 +257,11 @@ export async function saveMemory(rawContent: string): Promise<{
   };
 }
 
-export async function uploadMarkdownKnowledge(file: File, context?: string): Promise<{
+export async function uploadMarkdownKnowledge(
+  userId: string,
+  file: File,
+  context?: string,
+): Promise<{
   sourceId: string;
   status: string;
   fileName: string;
@@ -259,7 +273,7 @@ export async function uploadMarkdownKnowledge(file: File, context?: string): Pro
   const sourceId = sourceIdForFile(fileName, content);
   const uploadedAt = new Date().toISOString();
   const client = createClient();
-  const { tenant_id, sub_tenant_id } = getNamespaceMetadata();
+  const { tenant_id, sub_tenant_id } = getNamespaceMetadata(userId);
   await ensureTenant();
   const markdownFile = new File([content], fileName, {
     type: file.type || "text/markdown",
@@ -302,7 +316,7 @@ export async function uploadMarkdownKnowledge(file: File, context?: string): Pro
     throw new Error(response.message || "Failed to upload Markdown knowledge");
   }
 
-  const indexingStatus = await waitForIndexing(resultSourceId);
+  const indexingStatus = await waitForIndexing(userId, resultSourceId);
 
   return {
     sourceId: resultSourceId,
@@ -312,13 +326,16 @@ export async function uploadMarkdownKnowledge(file: File, context?: string): Pro
   };
 }
 
-export async function saveAudioTranscriptionMemory(options: {
-  transcript: string;
-  fileName: string;
-  contentType: string;
-  fileSize: number;
-  context?: string;
-}): Promise<{
+export async function saveAudioTranscriptionMemory(
+  userId: string,
+  options: {
+    transcript: string;
+    fileName: string;
+    contentType: string;
+    fileSize: number;
+    context?: string;
+  },
+): Promise<{
   sourceId: string;
   status: string;
   transcript: string;
@@ -343,7 +360,7 @@ export async function saveAudioTranscriptionMemory(options: {
   }
 
   const client = createClient();
-  const { tenant_id, sub_tenant_id } = getNamespaceMetadata();
+  const { tenant_id, sub_tenant_id } = getNamespaceMetadata(userId);
   await ensureTenant();
   const indexedText = formatIndexedMemoryText(
     context ? `Context: ${context}\n\nTranscript: ${transcript}` : transcript,
@@ -358,7 +375,7 @@ export async function saveAudioTranscriptionMemory(options: {
         text: indexedText,
         infer: false,
         title: `Voice note: ${transcript.slice(0, 64)}`,
-        additional_metadata: metadataWithNamespace({
+        additional_metadata: metadataWithNamespace(userId, {
           app: "second-brain-mvp",
           created_at: createdAt,
           source_type: "audio_transcription",
@@ -378,7 +395,7 @@ export async function saveAudioTranscriptionMemory(options: {
     throw new Error(response.message || "Failed to save audio transcription");
   }
 
-  const indexingStatus = await waitForIndexing(result.source_id);
+  const indexingStatus = await waitForIndexing(userId, result.source_id);
 
   return {
     sourceId: result.source_id,
@@ -439,13 +456,14 @@ function isRecoverableRecallError(error: unknown): boolean {
 }
 
 export async function searchMemories(
+  userId: string,
   rawQuestion: string,
 ): Promise<MemorySource[]> {
   const { content, tags } = parseMemoryContent(rawQuestion, MAX_MEMORY_TAGS);
   const query = [content, ...tags].filter(Boolean).join(" ").trim();
 
   const client = createClient();
-  const { tenant_id, sub_tenant_id } = getNamespaceMetadata();
+  const { tenant_id, sub_tenant_id } = getNamespaceMetadata(userId);
 
   const [knowledgeResult, memoryResult] = await Promise.allSettled([
     client.recall.fullRecall({
@@ -548,13 +566,16 @@ function getGraphRelationsPayload(
   throw result.reason;
 }
 
-export async function fetchBrainGraph(options?: {
-  sourceId?: string;
-  limit?: number;
-  cursor?: number | null;
-}) {
+export async function fetchBrainGraph(
+  userId: string,
+  options?: {
+    sourceId?: string;
+    limit?: number;
+    cursor?: number | null;
+  },
+) {
   const client = createClient();
-  const { tenant_id, sub_tenant_id } = getNamespaceMetadata();
+  const { tenant_id, sub_tenant_id } = getNamespaceMetadata(userId);
   const limit = options?.limit ?? BRAIN_GRAPH_LIMIT;
 
   const [

@@ -1,17 +1,25 @@
 import { NextResponse } from "next/server";
+import { guardApprovedApi, logAppAccess } from "@/lib/auth";
 import { tripletsToGraphData } from "@/lib/graph-data";
 import { fetchBrainGraph } from "@/lib/hydradb";
 import type { ApiErrorResponse, BrainGraphResponse } from "@/lib/types";
 
 export async function GET(request: Request) {
   try {
+    const auth = await guardApprovedApi();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
     const { searchParams } = new URL(request.url);
     const sourceId = searchParams.get("sourceId") ?? undefined;
     const cursorParam = searchParams.get("cursor");
     const cursor =
       cursorParam !== null && cursorParam !== "" ? Number(cursorParam) : null;
 
-    const raw = await fetchBrainGraph({
+    await logAppAccess({ route: "/api/brain" });
+
+    const raw = await fetchBrainGraph(auth.user.id, {
       sourceId,
       cursor: Number.isFinite(cursor) ? cursor : null,
     });

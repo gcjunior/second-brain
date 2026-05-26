@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
+import { guardApprovedApi, logAppAccess } from "@/lib/auth";
 import { saveMemory } from "@/lib/hydradb";
 import type { ApiErrorResponse, SaveMemoryResponse } from "@/lib/types";
 import { saveMemorySchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
+    const auth = await guardApprovedApi();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
     const body = await request.json();
     const parsed = saveMemorySchema.safeParse(body);
 
@@ -16,7 +22,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const { sourceId, status, tags } = await saveMemory(parsed.data.content);
+    await logAppAccess({ route: "/api/memories" });
+
+    const { sourceId, status, tags } = await saveMemory(
+      auth.user.id,
+      parsed.data.content,
+    );
 
     const baseMessage =
       tags.length > 0

@@ -1,5 +1,5 @@
 import { Lock, Radio, Sparkles } from "lucide-react";
-import { AppHeader } from "@/components/app-header";
+import { AppHeaderShell } from "@/components/app-header-shell";
 import { FeatureHighlights } from "@/components/feature-highlights";
 import { IntroBanner } from "@/components/intro-banner";
 import { MemoryInputCard } from "@/components/memory-input-card";
@@ -7,7 +7,7 @@ import { MemoryInputCard } from "@/components/memory-input-card";
 export function MainWorkspace() {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden">
-      <AppHeader />
+      <AppHeaderShell />
 
       <main className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-4 py-5 sm:px-6 sm:py-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start lg:gap-8">
         <section className="order-2 space-y-5 lg:sticky lg:top-24 lg:order-1">

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guardApprovedApi, logAppAccess } from "@/lib/auth";
 import { saveAudioTranscriptionMemory } from "@/lib/hydradb";
 import { transcribeAudioFile } from "@/lib/openai";
 import type { ApiErrorResponse, AudioMemoryResponse } from "@/lib/types";
@@ -6,6 +7,11 @@ import { audioUploadSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
+    const auth = await guardApprovedApi();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
     const contextValue = formData.get("context");
@@ -36,8 +42,10 @@ export async function POST(request: Request) {
       );
     }
 
+    await logAppAccess({ route: "/api/audio" });
+
     const transcript = await transcribeAudioFile(file, parsed.data.context);
-    const result = await saveAudioTranscriptionMemory({
+    const result = await saveAudioTranscriptionMemory(auth.user.id, {
       transcript,
       fileName: parsed.data.fileName,
       contentType: parsed.data.contentType,

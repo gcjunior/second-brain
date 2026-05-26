@@ -341,6 +341,12 @@ When a question contains `#hashtags`, `searchMemories()` routes through `memoryM
 | Path | Role |
 | --- | --- |
 | `app/page.tsx` | Home UI (save / ask / brain tabs) |
+| `app/login/page.tsx` | Sign in (OAuth + email) |
+| `app/admin/page.tsx` | Admin user approval console |
+| `middleware.ts` | Session refresh + route gating |
+| `lib/auth.ts` | Session helpers, API guards |
+| `lib/supabase/` | Supabase browser/server clients |
+| `supabase/migrations/` | Postgres schema, RLS, RPCs |
 | `app/api/memories/route.ts` | Text memory save endpoint |
 | `app/api/ask/route.ts` | Dual-recall ask endpoint |
 | `app/api/audio/route.ts` | Audio upload → Whisper → save memory |
@@ -364,6 +370,34 @@ When a question contains `#hashtags`, `searchMemories()` routes through `memoryM
 | `HYDRADB_API_KEY` | HydraDB API key from [app.hydradb.com](https://app.hydradb.com) |
 | `HYDRADB_PROJECT_ID` | HydraDB `tenant_id` for your workspace |
 | `HYDRADB_URL` | Optional. Defaults to `https://api.hydradb.com` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (public) key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (server + `npm run seed:admin` only) |
+| `ADMIN_SEED_EMAIL` | Email for the bootstrap admin account |
+| `ADMIN_SEED_PASSWORD` | Optional password for seed script (generated if omitted) |
+
+---
+
+### Authentication (Supabase)
+
+1. Create a [Supabase](https://supabase.com) project.
+2. Enable Auth providers: **Google**, **GitHub**, **Azure**, and **Email**.
+3. Set **Site URL** to `http://localhost:3000` and add redirect URL `http://localhost:3000/auth/callback`.
+4. Apply the schema:
+   ```bash
+   supabase link --project-ref <your-project-ref>
+   supabase db push
+   ```
+   Or run `supabase/migrations/001_auth_schema.sql` in the SQL Editor.
+5. Seed the admin user (after setting env vars):
+   ```bash
+   npm run seed:admin
+   ```
+6. Sign in at `/login`. New users stay on `/pending` until an admin approves them at `/admin`.
+
+**Roles:** `admin` can approve, block, and unlock users. **3 failed auth attempts** (any method) block the account; only an admin can unlock.
+
+HydraDB memories are isolated per user under `sub_tenant_id` = `user_<uuid>`.
 
 ---
 
@@ -392,6 +426,7 @@ npm run dev
 | `npm run build` | Production build |
 | `npm run start` | Run production build |
 | `npm run lint` | ESLint |
+| `npm run seed:admin` | Create/promote admin user via Supabase service role |
 | `npm run screenshots` | Capture README screenshots with Playwright (dev server must be running) |
 
 ---
@@ -437,8 +472,9 @@ Limit: 1–2000 characters.
 
 | Constraint | Detail |
 |---|---|
-| No authentication | Single shared namespace (`mvp_user`). Anyone with the URL can read/write memories. |
-| Single user | No per-user isolation in this MVP. |
+| Authentication required | Supabase session required for app and APIs. |
+| Admin approval | New accounts are `pending_approval` until an admin approves. |
+| Per-user HydraDB | Each user has an isolated `user_<uuid>` sub-tenant. |
 | Text + voice only | No file uploads, PDFs, or image parsing. |
 | Indexing delay | New memories searchable within ~2–10 seconds of saving. |
 | Voice browser support | Chrome/Edge recommended. Safari partial. |
@@ -450,16 +486,15 @@ Limit: 1–2000 characters.
 
 1. Push this repo to GitHub (must be public for submission)
 2. Import at [vercel.com/new](https://vercel.com/new)
-3. Add the four environment variables in Vercel project settings
-4. Deploy — no additional infrastructure required
-
-> ⚠️ No auth on this MVP. Anyone with the URL can read and write the shared `mvp_user` memory namespace.
+3. Add environment variables in Vercel project settings (OpenAI, HydraDB, Supabase)
+4. Set production Supabase redirect URL to `https://<your-domain>/auth/callback`
+5. Deploy — no additional infrastructure required
 
 ---
 
 ### Future Roadmap
 
-- [ ] Per-user authentication + isolated sub-tenants
+- [ ] MFA and invite-only registration
 - [ ] Memory list, edit, and delete UI
 - [ ] Streaming answers from OpenAI
 - [ ] `infer: true` for richer entity extraction on save

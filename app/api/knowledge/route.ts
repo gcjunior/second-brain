@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
+import { guardApprovedApi, logAppAccess } from "@/lib/auth";
 import { uploadMarkdownKnowledge } from "@/lib/hydradb";
 import type { ApiErrorResponse, UploadKnowledgeResponse } from "@/lib/types";
 import { markdownUploadSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
+    const auth = await guardApprovedApi();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
     const contextValue = formData.get("context");
@@ -35,7 +41,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await uploadMarkdownKnowledge(file, parsed.data.context);
+    await logAppAccess({ route: "/api/knowledge" });
+
+    const result = await uploadMarkdownKnowledge(
+      auth.user.id,
+      file,
+      parsed.data.context,
+    );
 
     return NextResponse.json<UploadKnowledgeResponse>({
       ...result,

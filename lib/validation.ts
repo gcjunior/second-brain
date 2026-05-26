@@ -65,7 +65,19 @@ export const audioUploadSchema = z.object({
   context: z.string().trim().max(500, "Context is too long").optional(),
 });
 
+export const authFailureSchema = z.object({
+  email: z.string().email("Valid email is required"),
+  reason: z.string().trim().min(1, "Reason is required").max(500),
+  provider: z.string().trim().max(50).optional(),
+});
+
+export const adminActionSchema = z.object({
+  note: z.string().trim().max(500).optional(),
+});
+
 export type SaveMemoryInput = z.infer<typeof saveMemorySchema>;
 export type AskQuestionInput = z.infer<typeof askQuestionSchema>;
 export type MarkdownUploadInput = z.infer<typeof markdownUploadSchema>;
 export type AudioUploadInput = z.infer<typeof audioUploadSchema>;
+export type AuthFailureInput = z.infer<typeof authFailureSchema>;
+export type AdminActionInput = z.infer<typeof adminActionSchema>;

@@ -1,0 +1,60 @@
+<svg width="100%" viewBox="0 0 680 300" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Second Brain vision — today and future input layers</title>
+  <desc>Today memories are saved via text and voice input. In the future a wearable captures everything passively. The recall engine is the same in both cases.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <rect width="680" height="300" fill="#FDF6EE" rx="12"/>
+
+  <!-- TODAY column -->
+  <text font-family="Georgia, serif" font-size="12" fill="#993C1D" x="170" y="36" text-anchor="middle" font-weight="700" font-style="italic">Today · MVP</text>
+
+  <rect x="60" y="52" width="220" height="52" rx="10" fill="#FDF0E4" stroke="#C97B3A" stroke-width="0.5"/>
+  <text font-family="Georgia, serif" font-size="11" fill="#712B13" x="170" y="72" text-anchor="middle" font-weight="600">Text input</text>
+  <text font-family="Georgia, serif" font-size="9" fill="#854F0B" x="170" y="90" text-anchor="middle">type a note, idea, or fact</text>
+
+  <rect x="60" y="116" width="220" height="52" rx="10" fill="#FDF0E4" stroke="#C97B3A" stroke-width="0.5"/>
+  <text font-family="Georgia, serif" font-size="11" fill="#712B13" x="170" y="136" text-anchor="middle" font-weight="600">Voice input</text>
+  <text font-family="Georgia, serif" font-size="9" fill="#854F0B" x="170" y="154" text-anchor="middle">Web Speech API · browser-native</text>
+
+  <!-- Arrows today → engine -->
+  <line x1="280" y1="78" x2="318" y2="160" stroke="#BA7517" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="280" y1="142" x2="318" y2="170" stroke="#BA7517" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- FUTURE column -->
+  <text font-family="Georgia, serif" font-size="12" fill="#185FA5" x="510" y="36" text-anchor="middle" font-weight="700" font-style="italic">Future · ambient capture</text>
+
+  <rect x="400" y="52" width="220" height="52" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text font-family="Georgia, serif" font-size="11" fill="#0C447C" x="510" y="72" text-anchor="middle" font-weight="600">Wearable / always-on</text>
+  <text font-family="Georgia, serif" font-size="9" fill="#185FA5" x="510" y="90" text-anchor="middle">bracelet, earpiece, clip</text>
+
+  <rect x="400" y="116" width="220" height="52" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text font-family="Georgia, serif" font-size="11" fill="#0C447C" x="510" y="136" text-anchor="middle" font-weight="600">Passive capture</text>
+  <text font-family="Georgia, serif" font-size="9" fill="#185FA5" x="510" y="154" text-anchor="middle">everything you say, hear, do</text>
+
+  <!-- Arrows future → engine -->
+  <line x1="400" y1="78" x2="362" y2="160" stroke="#185FA5" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="400" y1="142" x2="362" y2="170" stroke="#185FA5" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- RECALL ENGINE — centre -->
+  <rect x="290" y="154" width="100" height="64" rx="12" fill="#FAEEDA" stroke="#BA7517" stroke-width="1.5"/>
+  <text font-family="Georgia, serif" font-size="11" fill="#712B13" x="340" y="176" text-anchor="middle" font-weight="700">Recall</text>
+  <text font-family="Georgia, serif" font-size="11" fill="#712B13" x="340" y="192" text-anchor="middle" font-weight="700">engine</text>
+  <text font-family="Georgia, serif" font-size="8" fill="#993C1D" x="340" y="210" text-anchor="middle">unchanged</text>
+
+  <!-- Arrow engine → answer -->
+  <line x1="340" y1="218" x2="340" y2="252" stroke="#BA7517" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Answer box -->
+  <rect x="240" y="254" width="200" height="36" rx="10" fill="#EAF3DE" stroke="#3B6D11" stroke-width="0.5"/>
+  <text font-family="Georgia, serif" font-size="11" fill="#27500A" x="340" y="270" text-anchor="middle" font-weight="600">Just ask. It tells you.</text>
+  <text font-family="Georgia, serif" font-size="9" fill="#3B6D11" x="340" y="284" text-anchor="middle">grounded · cited · no hallucination</text>
+
+  <!-- Divider -->
+  <line x1="340" y1="52" x2="340" y2="140" stroke="#D3D1C7" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <text font-family="Georgia, serif" font-size="9" fill="#888780" x="340" y="100" text-anchor="middle">input layer</text>
+  <text font-family="Georgia, serif" font-size="8" fill="#B4B2A9" x="340" y="114" text-anchor="middle">replaceable</text>
+</svg>

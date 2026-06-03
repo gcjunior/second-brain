@@ -1,0 +1,36 @@
+---
+description: Route Handler conventions for app/api
+globs: app/api/**/*.ts
+alwaysApply: false
+---
+
+# API route handlers
+
+Follow the pattern in `app/api/memories/route.ts` and `app/api/ask/route.ts`.
+
+## Handler shape
+
+1. `await request.json()`
+2. Validate with Zod `safeParse` from `lib/validation.ts`
+3. On failure: `400` with `{ error: firstIssueMessage }`
+4. Call `lib/*` functions (no business logic in the route)
+5. On success: typed `NextResponse.json<SuccessType>(...)`
+6. On catch: `console.error("[POST /api/route]", error)` and `500` with `{ error: message }`
+
+## Types
+
+Import `ApiErrorResponse` and success types from `lib/types.ts`. Use generics on `NextResponse.json<T>()`.
+
+```typescript
+// Validation failure
+return NextResponse.json<ApiErrorResponse>({ error: message }, { status: 400 });
+
+// Success
+return NextResponse.json<AskResponse>({ answer, sources });
+```
+
+## Do not
+
+- Skip Zod validation for JSON bodies
+- Put HydraDB or OpenAI calls directly in the route file
+- Return non-`{ error: string }` shapes for errors

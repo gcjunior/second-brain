@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Lock } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { FeatureHighlights } from "@/components/feature-highlights";
@@ -21,4 +22,10 @@ export default function Home() {
       </footer>
     </div>
   );
+=======
+import { MainWorkspace } from "@/components/main-workspace";
+
+export default function Home() {
+  return <MainWorkspace />;
+>>>>>>> origin/main
 }

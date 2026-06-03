@@ -1,14 +1,38 @@
 import OpenAI from "openai";
+<<<<<<< HEAD
 import type { MemorySource } from "@/lib/types";
 
 function getClient() {
   const apiKey = process.env.OPENAI_API_KEY;
+=======
+import {
+  DEFAULT_OPENAI_ANSWER_MODEL,
+  DEFAULT_OPENAI_TRANSCRIBE_MODEL,
+} from "@/lib/constants";
+import type { MemorySource } from "@/lib/types";
+
+function getClient() {
+  const apiKey = process.env.OPENAI_API_KEY ?? process.env.OPENAI_APIKEY;
+>>>>>>> origin/main
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not configured");
   }
   return new OpenAI({ apiKey });
 }
 
+<<<<<<< HEAD
+=======
+function getAnswerModel() {
+  return process.env.OPENAI_ANSWER_MODEL ?? DEFAULT_OPENAI_ANSWER_MODEL;
+}
+
+function getTranscribeModel() {
+  return (
+    process.env.OPENAI_TRANSCRIBE_MODEL ?? DEFAULT_OPENAI_TRANSCRIBE_MODEL
+  );
+}
+
+>>>>>>> origin/main
 function formatContext(sources: MemorySource[]): string {
   if (sources.length === 0) {
     return "No memories were found.";
@@ -30,7 +54,11 @@ export async function generateGroundedAnswer(
   const context = formatContext(sources);
 
   const completion = await client.chat.completions.create({
+<<<<<<< HEAD
     model: "gpt-4o-mini",
+=======
+    model: getAnswerModel(),
+>>>>>>> origin/main
     temperature: 0.2,
     messages: [
       {
@@ -53,3 +81,27 @@ Do not invent facts. Keep answers concise and clear.`,
 
   return answer;
 }
+<<<<<<< HEAD
+=======
+
+export async function transcribeAudioFile(
+  file: File,
+  context?: string,
+): Promise<string> {
+  const client = getClient();
+  const transcription = await client.audio.transcriptions.create({
+    file,
+    model: getTranscribeModel(),
+    language: "en",
+    prompt: context,
+    response_format: "json",
+  });
+
+  const transcript = transcription.text.trim();
+  if (!transcript) {
+    throw new Error("OpenAI returned an empty transcription");
+  }
+
+  return transcript;
+}
+>>>>>>> origin/main

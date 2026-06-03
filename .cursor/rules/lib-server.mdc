@@ -1,0 +1,32 @@
+---
+description: Server lib module conventions
+globs: lib/**/*.ts
+alwaysApply: false
+---
+
+# lib/ server modules
+
+## Layout
+
+| File | Purpose |
+| --- | --- |
+| `validation.ts` | Zod schemas + `z.infer<>` exported types |
+| `types.ts` | API response and domain types |
+| `constants.ts` | Shared limits and constants |
+| `hydradb.ts` | HydraDB client, save, recall |
+| `openai.ts` | Grounded answer generation |
+| `utils.ts` | `cn()` helper (safe for client import) |
+
+## Env and clients
+
+Read `process.env` only in integration modules (`hydradb.ts`, `openai.ts`). Use factory/getter functions that throw clear errors when env vars are missing.
+
+## Validation
+
+Define limits once in `constants.ts` and reference them in Zod `.max()` calls in `validation.ts`.
+
+## Do not
+
+- Add `"use client"` to any `lib/` file
+- Import `hydradb.ts` or `openai.ts` from client components
+- Duplicate Zod schemas outside `validation.ts`

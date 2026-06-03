@@ -1,0 +1,36 @@
+---
+description: Second Brain MVP architecture — server boundaries, data flow, out-of-scope features
+alwaysApply: true
+---
+
+# Core architecture
+
+## Data flow
+
+Browser (`components/`) → `fetch /api/*` → Route Handlers (`app/api/`) → `lib/*` → HydraDB / OpenAI.
+
+## Server-only secrets
+
+API keys and external clients live only in `lib/*` (and Route Handlers that call `lib/*`). Never read `process.env` for secrets in client components.
+
+## MVP constraints (do not add unless explicitly requested)
+
+- No authentication
+- No in-repo database (HydraDB is the memory store)
+- No background jobs, Redis, or file uploads
+- No global state libraries (Redux, Zustand, React Query)
+- Single sub-tenant: `mvp_user` in `lib/hydradb.ts`
+
+## Next.js 16
+
+This project uses Next.js 16 with breaking API changes. Read `node_modules/next/dist/docs/` before using App Router features. Heed deprecation notices.
+
+## Where code belongs
+
+| Concern | Location |
+| --- | --- |
+| HTTP validation + response | `app/api/*/route.ts` |
+| Business logic, SDK calls | `lib/*.ts` |
+| Zod schemas | `lib/validation.ts` |
+| Shared types | `lib/types.ts` |
+| UI | `components/` (feature) or `components/ui/` (shadcn primitives) |

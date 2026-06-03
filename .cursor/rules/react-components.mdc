@@ -1,0 +1,42 @@
+---
+description: React component and styling conventions
+globs: components/**/*.tsx
+alwaysApply: false
+---
+
+# React components
+
+## Naming
+
+- File: `kebab-case.tsx` (e.g. `memory-input-card.tsx`)
+- Export: `PascalCase` function component (e.g. `MemoryInputCard`)
+
+## Client boundary
+
+Add `"use client"` only when the file needs React state, effects, browser APIs (e.g. Speech), or theme hooks. Keep presentational pieces server-friendly when not imported under a client parent.
+
+## UI primitives
+
+- Use shadcn components from `components/ui/` (base-nova style, `@base-ui/react`)
+- Merge classes with `cn()` from `@/lib/utils`
+- Icons: `lucide-react`; decorative icons get `aria-hidden`
+
+## Styling
+
+Prefer theme tokens (`bg-primary`, `text-muted-foreground`, `border-border/60`) over raw Tailwind palette colors (`bg-emerald-100`, etc.).
+
+Reuse layout patterns: `rounded-2xl`, `shadow-card`, `max-w-4xl`, `bg-cream-dark/80`.
+
+## Async UI state
+
+Use discriminated unions for status (see `StatusState` in `memory-input-card.tsx`). Show errors with `Alert` and `toast` from sonner.
+
+## Accessibility
+
+- `aria-label` on inputs without visible labels
+- `aria-live` / `aria-busy` for loading content
+- `role="alert"` for error regions where appropriate
+
+## Char limits
+
+Import `MAX_SAVE_LENGTH` / `MAX_ASK_LENGTH` from `@/lib/constants` — do not duplicate magic numbers.

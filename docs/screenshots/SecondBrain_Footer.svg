@@ -1,0 +1,70 @@
+<svg width="100%" viewBox="0 0 680 120" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Second Brain footer</title>
+  <desc>Second Brain footer showing project name, hackathon credit, tech stack, links and MVP disclaimer</desc>
+  <defs>
+    <style>
+      @keyframes footerfade { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
+      @keyframes brainpulse { 0%,100%{r:18} 50%{r:20} }
+      @keyframes ringpulse { 0%,100%{opacity:0;r:20} 50%{opacity:0.25;r:24} }
+      #footerbrain { animation: footerfade 0.6s ease-out forwards; }
+      #fbraincircle { animation: brainpulse 2.5s ease-in-out infinite; }
+      #fpulstring { animation: ringpulse 2.5s ease-in-out infinite; }
+      #footercontent { animation: footerfade 0.6s 0.2s ease-out both; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="680" height="120" fill="#FDF6EE" rx="12"/>
+
+  <!-- Top divider -->
+  <line x1="40" y1="0" x2="640" y2="0" stroke="#D3C4A8" stroke-width="0.5"/>
+
+  <!-- Decorative circles -->
+  <circle cx="620" cy="100" r="50" fill="#F5E6D3" opacity="0.4"/>
+  <circle cx="60" cy="20" r="40" fill="#FAEEDA" opacity="0.3"/>
+
+  <!-- Brain icon small -->
+  <g id="footerbrain">
+    <circle id="fpulstring" cx="52" cy="60" r="20" fill="none" stroke="#C97B3A" stroke-width="1.5" opacity="0"/>
+    <circle id="fbraincircle" cx="52" cy="60" r="18" fill="#C97B3A"/>
+    <g transform="translate(52,60)">
+      <path d="M-1,-7 C-8,-7 -11,-3 -11,1 C-11,4 -9,7 -6,8 L-1,8 L-1,-7 Z" fill="white" opacity="0.9"/>
+      <path d="M1,-7 C8,-7 11,-3 11,1 C11,4 9,7 6,8 L1,8 L1,-7 Z" fill="white" opacity="0.9"/>
+      <line x1="0" y1="-7" x2="0" y2="8" stroke="#C97B3A" stroke-width="1"/>
+      <path d="M-10,1 C-7,-2 -4,-2 -2,1" fill="none" stroke="#C97B3A" stroke-width="0.8" opacity="0.6"/>
+      <path d="M10,1 C7,-2 4,-2 2,1" fill="none" stroke="#C97B3A" stroke-width="0.8" opacity="0.6"/>
+    </g>
+  </g>
+
+  <!-- Content -->
+  <g id="footercontent">
+    <!-- Project name + tagline -->
+    <text font-family="Georgia,serif" font-size="16" font-weight="700" fill="#712B13" x="82" y="50">Second Brain</text>
+    <text font-family="Georgia,serif" font-size="10" font-style="italic" fill="#993C1D" x="82" y="66">Save a thought. Ask for it later.</text>
+
+    <!-- Divider line vertical -->
+    <line x1="240" y1="38" x2="240" y2="82" stroke="#D3C4A8" stroke-width="0.5"/>
+
+    <!-- Built for -->
+    <text font-family="Georgia,serif" font-size="10" fill="#854F0B" x="258" y="52">Built for the</text>
+    <text font-family="Georgia,serif" font-size="11" font-weight="700" fill="#712B13" x="258" y="66">Cursor Hackathon</text>
+
+    <!-- Divider line vertical -->
+    <line x1="390" y1="38" x2="390" y2="82" stroke="#D3C4A8" stroke-width="0.5"/>
+
+    <!-- Stack credits -->
+    <text font-family="Georgia,serif" font-size="9" fill="#854F0B" x="406" y="48">Powered by</text>
+    <text font-family="Georgia,serif" font-size="10" font-weight="700" fill="#27500A" x="406" y="62">HydraDB</text>
+    <text font-family="Georgia,serif" font-size="9" fill="#854F0B" x="406" y="76">memory storage</text>
+
+    <!-- Divider line vertical -->
+    <line x1="510" y1="38" x2="510" y2="82" stroke="#D3C4A8" stroke-width="0.5"/>
+
+    <text font-family="Georgia,serif" font-size="9" fill="#854F0B" x="526" y="48">Answers by</text>
+    <text font-family="Georgia,serif" font-size="10" font-weight="700" fill="#0C447C" x="526" y="62">OpenAI</text>
+    <text font-family="Georgia,serif" font-size="9" fill="#854F0B" x="526" y="76">gpt-4o-mini</text>
+
+    <!-- Bottom disclaimer -->
+    <text font-family="Georgia,serif" font-size="8" fill="#B4B2A9" x="340" y="103" text-anchor="middle">Single-user MVP · No auth · Text and voice only · MIT License</text>
+  </g>
+</svg>

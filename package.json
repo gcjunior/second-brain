@@ -3,10 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+<<<<<<< HEAD
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
+=======
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "screenshots": "PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers node scripts/capture-screenshots.mjs"
+>>>>>>> origin/main
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -19,6 +27,10 @@
     "openai": "^6.39.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+<<<<<<< HEAD
+=======
+    "react-force-graph-2d": "^1.29.1",
+>>>>>>> origin/main
     "shadcn": "^4.8.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
@@ -32,6 +44,10 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+<<<<<<< HEAD
+=======
+    "playwright": "^1.60.0",
+>>>>>>> origin/main
     "tailwindcss": "^4",
     "typescript": "^5"
   }

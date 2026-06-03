@@ -75,6 +75,8 @@ export const adminActionSchema = z.object({
   note: z.string().trim().max(500).optional(),
 });
 
+export const adminUserIdParamSchema = z.string().uuid("Invalid user id");
+
 export type SaveMemoryInput = z.infer<typeof saveMemorySchema>;
 export type AskQuestionInput = z.infer<typeof askQuestionSchema>;
 export type MarkdownUploadInput = z.infer<typeof markdownUploadSchema>;

@@ -13,7 +13,8 @@
 
 | Constant / setting | Value |
 | --- | --- |
-| `SUB_TENANT_ID` | `"mvp_user"` |
+| `tenant_id` | `process.env.HYDRADB_PROJECT_ID` (shared workspace) |
+| `sub_tenant_id` | `resolveHydraSubTenantId(userId)` → `` `user_${userId}` `` (`userId` from `guardApprovedApi()`, never from client) |
 | `infer` on save | `false` |
 | Indexing poll | 12 attempts × 1s |
 | Ready statuses | `completed`, `graph_creation`, `success` |
@@ -25,9 +26,10 @@
 ```typescript
 function getConfig() { /* read env, throw if missing */ }
 function createClient() { return new HydraDBClient({ token, baseUrl? }); }
+export function resolveHydraSubTenantId(userId: string): string { /* user_<uuid> */ }
 ```
 
-Exported domain functions: `saveMemory(content)`, `searchMemories(question)`.
+Exported domain functions: `saveMemory(userId, content)`, `searchMemories(userId, question)`, and other memory/graph helpers — all take `userId` from the authenticated session.
 
 ## OpenAI (`lib/openai.ts`)
 

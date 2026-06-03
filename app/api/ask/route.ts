@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  internalErrorResponse,
+  rateLimitResponse,
+} from "@/lib/api-response";
+import { checkAskRateLimit } from "@/lib/api-rate-limit";
 import { guardApprovedApi, logAppAccess } from "@/lib/auth";
 import { MAX_MEMORY_TAGS } from "@/lib/constants";
 import { searchMemories } from "@/lib/hydradb";
@@ -12,6 +17,11 @@ export async function POST(request: Request) {
     const auth = await guardApprovedApi();
     if (!auth.ok) {
       return auth.response;
+    }
+
+    const rateLimit = checkAskRateLimit(auth.user.id);
+    if (!rateLimit.ok) {
+      return rateLimitResponse(rateLimit.retryAfterMs);
     }
 
     const body = await request.json();
@@ -40,12 +50,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json<AskResponse>({ answer, sources });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to answer question";
-    console.error("[POST /api/ask]", error);
-    return NextResponse.json<ApiErrorResponse>(
-      { error: message },
-      { status: 500 },
-    );
+    return internalErrorResponse("[POST /api/ask]", error);
   }
 }

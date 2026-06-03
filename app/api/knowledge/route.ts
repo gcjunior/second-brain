@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  internalErrorResponse,
+  rateLimitResponse,
+} from "@/lib/api-response";
+import { checkMemoryRateLimit } from "@/lib/api-rate-limit";
 import { guardApprovedApi, logAppAccess } from "@/lib/auth";
 import { uploadMarkdownKnowledge } from "@/lib/hydradb";
 import type { ApiErrorResponse, UploadKnowledgeResponse } from "@/lib/types";
@@ -9,6 +14,11 @@ export async function POST(request: Request) {
     const auth = await guardApprovedApi();
     if (!auth.ok) {
       return auth.response;
+    }
+
+    const rateLimit = checkMemoryRateLimit(auth.user.id);
+    if (!rateLimit.ok) {
+      return rateLimitResponse(rateLimit.retryAfterMs);
     }
 
     const formData = await request.formData();
@@ -57,12 +67,6 @@ export async function POST(request: Request) {
           : "Markdown uploaded and indexed",
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to upload Markdown";
-    console.error("[POST /api/knowledge]", error);
-    return NextResponse.json<ApiErrorResponse>(
-      { error: message },
-      { status: 500 },
-    );
+    return internalErrorResponse("[POST /api/knowledge]", error);
   }
 }

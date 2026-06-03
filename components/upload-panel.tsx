@@ -1,17 +1,9 @@
 "use client";
 
-import {
-  FileText,
-  Loader2,
-  Mic,
-  Square,
-  Upload,
-  Volume2,
-} from "lucide-react";
-import { useRef, useState } from "react";
+import { FileText, Upload, Volume2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type {
   AudioMemoryResponse,
@@ -55,11 +47,6 @@ function SectionHeader({
 export function UploadPanel() {
   const [context, setContext] = useState("");
   const [status, setStatus] = useState<UploadStatus>({ type: "idle" });
-  const [recording, setRecording] = useState(false);
-  const [recordedFile, setRecordedFile] = useState<File | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
 
   const isLoading = status.type === "loading";
 
@@ -132,7 +119,6 @@ export function UploadPanel() {
         type: "success",
         message: `Audio saved (ID: ${data.sourceId.slice(0, 8)}..., status: ${data.status}). Transcript: ${preview}`,
       });
-      setRecordedFile(null);
       toast.success(data.message);
     } catch (error) {
       const message =
@@ -140,57 +126,6 @@ export function UploadPanel() {
       setStatus({ type: "error", message });
       toast.error(message);
     }
-  }
-
-  async function startRecording() {
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setStatus({
-        type: "error",
-        message: "Audio recording is not supported in this browser.",
-      });
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      streamRef.current = stream;
-      chunksRef.current = [];
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      recorder.onstop = () => {
-        const type = recorder.mimeType || "audio/webm";
-        const blob = new Blob(chunksRef.current, { type });
-        const extension = type.includes("mp4") ? "m4a" : "webm";
-        const file = new File([blob], `voice-note-${Date.now()}.${extension}`, {
-          type,
-        });
-        setRecordedFile(file);
-        streamRef.current?.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      };
-
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setRecording(true);
-      setStatus({ type: "idle" });
-    } catch {
-      setStatus({
-        type: "error",
-        message: "Microphone permission was denied or unavailable.",
-      });
-    }
-  }
-
-  function stopRecording() {
-    mediaRecorderRef.current?.stop();
-    mediaRecorderRef.current = null;
-    setRecording(false);
   }
 
   return (
@@ -252,69 +187,37 @@ export function UploadPanel() {
           <SectionHeader
             icon={Volume2}
             title="Audio Memory"
-            description="Record or upload audio, transcribe it, and save the transcript as memory."
+            description="Upload audio, transcribe it, and save the transcript as memory."
           />
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Button
-              type="button"
-              variant={recording ? "destructive" : "outline"}
-              onClick={recording ? stopRecording : () => void startRecording()}
+          <label
+            className={cn(
+              "flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card/70 p-4 text-center transition-all",
+              "hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/50 hover:shadow-sm",
+              isLoading && "pointer-events-none opacity-60",
+            )}
+          >
+            <Upload className="size-5 text-primary" aria-hidden />
+            <span className="text-sm font-medium text-foreground">
+              Choose audio file
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Common formats such as mp3, m4a, wav, webm
+            </span>
+            <input
+              type="file"
+              accept="audio/*"
+              className="sr-only"
               disabled={isLoading}
-              className="h-10"
-            >
-              {recording ? (
-                <Square className="size-4" />
-              ) : (
-                <Mic className="size-4" />
-              )}
-              {recording ? "Stop" : "Record"}
-            </Button>
-
-            <label
-              className={cn(
-                "inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-sm font-medium transition-colors hover:bg-muted",
-                isLoading && "pointer-events-none opacity-60",
-              )}
-            >
-              <Upload className="size-4" aria-hidden />
-              Audio File
-              <input
-                type="file"
-                accept="audio/*"
-                className="sr-only"
-                disabled={isLoading}
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (file) {
-                    void uploadAudio(file);
-                  }
-                }}
-              />
-            </label>
-          </div>
-
-          {recordedFile ? (
-            <div className="space-y-2 rounded-xl bg-muted/60 p-3">
-              <p className="truncate text-xs text-muted-foreground">
-                Recording ready: {recordedFile.name}
-              </p>
-              <Button
-                type="button"
-                onClick={() => void uploadAudio(recordedFile)}
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Upload className="size-4" />
-                )}
-                Save Recording
-              </Button>
-            </div>
-          ) : null}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) {
+                  void uploadAudio(file);
+                }
+              }}
+            />
+          </label>
         </div>
       </div>
 

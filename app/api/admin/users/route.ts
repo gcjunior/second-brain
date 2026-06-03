@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
+import {
+  internalErrorResponse,
+  rateLimitResponse,
+} from "@/lib/api-response";
+import { checkAdminRateLimit } from "@/lib/api-rate-limit";
 import { guardAdminApi } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { AdminUsersResponse, ApiErrorResponse } from "@/lib/types";
+import type { AdminUsersResponse } from "@/lib/types";
 
 export async function GET() {
   try {
     const admin = await guardAdminApi();
     if (!admin.ok) {
       return admin.response;
+    }
+
+    const rateLimit = checkAdminRateLimit(admin.user.id);
+    if (!rateLimit.ok) {
+      return rateLimitResponse(rateLimit.retryAfterMs);
     }
 
     const supabase = await createClient();
@@ -26,12 +36,6 @@ export async function GET() {
       users: data ?? [],
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to list users";
-    console.error("[GET /api/admin/users]", error);
-    return NextResponse.json<ApiErrorResponse>(
-      { error: message },
-      { status: 500 },
-    );
+    return internalErrorResponse("[GET /api/admin/users]", error);
   }
 }

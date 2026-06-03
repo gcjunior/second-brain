@@ -45,6 +45,13 @@ export type AdminUsersResponse = {
   users: ProfileSummary[];
 };
 
+export type AdminPurgeMemoriesResponse = {
+  memoryCount: number;
+  knowledgeCount: number;
+  deletedIds: number;
+  message: string;
+};
+
 export type UploadKnowledgeResponse = {
   sourceId: string;
   status: string;

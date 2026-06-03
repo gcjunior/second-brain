@@ -16,6 +16,10 @@ type ProfileGate = {
   account_status: AccountStatus;
 };
 
+function isProduction() {
+  return process.env.NODE_ENV === "production";
+}
+
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
@@ -60,6 +64,37 @@ function gateRoute(profile: ProfileGate | null): string | null {
   return "/pending";
 }
 
+function unconfiguredResponse(request: NextRequest): NextResponse {
+  const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json(
+      { error: "Service unavailable" },
+      { status: 503 },
+    );
+  }
+
+  return NextResponse.redirect(new URL("/login", request.url));
+}
+
+function sessionErrorResponse(
+  request: NextRequest,
+  baseResponse?: NextResponse,
+): NextResponse {
+  const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const loginUrl = new URL("/login", request.url);
+  if (baseResponse) {
+    return redirectWithCookies(loginUrl, baseResponse);
+  }
+
+  return NextResponse.redirect(loginUrl);
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -72,6 +107,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!isSupabaseConfigured()) {
+    if (isProduction()) {
+      return unconfiguredResponse(request);
+    }
     return NextResponse.next();
   }
 
@@ -85,7 +123,7 @@ export async function middleware(request: NextRequest) {
     supabase = session.supabase;
     user = session.user;
   } catch {
-    return NextResponse.next();
+    return sessionErrorResponse(request);
   }
 
   if (pathname.startsWith("/api/")) {

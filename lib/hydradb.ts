@@ -4,6 +4,8 @@ import {
   BRAIN_GRAPH_LIMIT,
   BRAIN_SUPER_NODES_LIMIT,
   INDEXING_DELAY_MS,
+  PURGE_DELETE_BATCH_SIZE,
+  PURGE_LIST_PAGE_SIZE,
   INDEXING_MAX_ATTEMPTS,
   MAX_MEMORY_TAGS,
   RECALL_MAX_RESULTS,
@@ -47,14 +49,24 @@ function getTenantId() {
   return getConfig().tenantId;
 }
 
-function getSubTenantId(userId: string) {
-  return `user_${userId}`;
+/** Server-only: Supabase `auth.users.id` from `guardApprovedApi()`, never from the client. */
+function requireHydraUserId(userId: string): string {
+  const trimmed = userId.trim();
+  if (!trimmed) {
+    throw new Error("HydraDB userId is required");
+  }
+  return trimmed;
+}
+
+/** Single source of truth for HydraDB `sub_tenant_id` (server-only Supabase user id). */
+export function resolveHydraSubTenantId(userId: string): string {
+  return `user_${requireHydraUserId(userId)}`;
 }
 
 function getNamespaceMetadata(userId: string) {
   return {
     tenant_id: getTenantId(),
-    sub_tenant_id: getSubTenantId(userId),
+    sub_tenant_id: resolveHydraSubTenantId(userId),
   };
 }
 
@@ -524,7 +536,148 @@ export async function searchMemories(
     .slice(0, RECALL_MAX_RESULTS);
 }
 
-export async function listDemoSubTenants() {
+type HydraListKind = "memories" | "knowledge";
+
+function extractSourceIdsFromListPage(
+  kind: HydraListKind,
+  response: unknown,
+): string[] {
+  if (!response || typeof response !== "object") {
+    return [];
+  }
+
+  if (kind === "memories") {
+    const memories = (
+      response as { user_memories?: { memory_id?: string }[] }
+    ).user_memories;
+    if (!Array.isArray(memories)) {
+      return [];
+    }
+    return memories
+      .map((item) => item.memory_id?.trim())
+      .filter((id): id is string => Boolean(id));
+  }
+
+  const data = (response as { data?: { id?: string }[] }).data;
+  if (Array.isArray(data)) {
+    return data
+      .map((item) => item.id?.trim())
+      .filter((id): id is string => Boolean(id));
+  }
+
+  return [];
+}
+
+function extractPagination(
+  response: unknown,
+): { has_next: boolean; page: number } | null {
+  if (!response || typeof response !== "object") {
+    return null;
+  }
+
+  const pagination = (response as { pagination?: { has_next?: boolean; page?: number } })
+    .pagination;
+  if (!pagination || typeof pagination !== "object") {
+    return null;
+  }
+
+  return {
+    has_next: Boolean(pagination.has_next),
+    page: typeof pagination.page === "number" ? pagination.page : 1,
+  };
+}
+
+async function listAllSourceIdsForKind(
+  client: ReturnType<typeof createClient>,
+  tenant_id: string,
+  sub_tenant_id: string,
+  kind: HydraListKind,
+): Promise<string[]> {
+  const ids: string[] = [];
+  let page = 1;
+  let hasNext = true;
+
+  while (hasNext) {
+    const response = await client.fetch.listData({
+      tenant_id,
+      sub_tenant_id,
+      kind,
+      page,
+      page_size: PURGE_LIST_PAGE_SIZE,
+    });
+
+    ids.push(...extractSourceIdsFromListPage(kind, response));
+
+    const pagination = extractPagination(response);
+    if (!pagination) {
+      break;
+    }
+
+    hasNext = pagination.has_next;
+    page = pagination.page + 1;
+  }
+
+  return ids;
+}
+
+async function deleteSourceIdsInBatches(
+  client: ReturnType<typeof createClient>,
+  tenant_id: string,
+  sub_tenant_id: string,
+  ids: string[],
+): Promise<number> {
+  let deleted = 0;
+
+  for (let i = 0; i < ids.length; i += PURGE_DELETE_BATCH_SIZE) {
+    const batch = ids.slice(i, i + PURGE_DELETE_BATCH_SIZE);
+    const response = await client.data.delete({
+      tenant_id,
+      sub_tenant_id,
+      ids: batch,
+    });
+    deleted += response.deleted_count ?? batch.length;
+  }
+
+  return deleted;
+}
+
+/** Admin-only: delete all memories and knowledge for a user's sub-tenant. */
+export async function purgeUserHydraData(userId: string): Promise<{
+  memoryCount: number;
+  knowledgeCount: number;
+  deletedIds: number;
+}> {
+  const client = createClient();
+  const { tenant_id, sub_tenant_id } = getNamespaceMetadata(userId);
+
+  const memoryIds = await listAllSourceIdsForKind(
+    client,
+    tenant_id,
+    sub_tenant_id,
+    "memories",
+  );
+  const knowledgeIds = await listAllSourceIdsForKind(
+    client,
+    tenant_id,
+    sub_tenant_id,
+    "knowledge",
+  );
+
+  const allIds = [...memoryIds, ...knowledgeIds];
+  const deletedIds =
+    allIds.length > 0
+      ? await deleteSourceIdsInBatches(client, tenant_id, sub_tenant_id, allIds)
+      : 0;
+
+  return {
+    memoryCount: memoryIds.length,
+    knowledgeCount: knowledgeIds.length,
+    deletedIds,
+  };
+}
+
+/** Ops/verification only — lists sub-tenants for the deployment tenant; not for API routes. */
+export async function listProjectSubTenants() {
   const client = createClient();
   const tenantId = getTenantId();
 

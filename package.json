@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "seed:admin": "node scripts/seed-admin.mjs",
+    "audit:hydradb": "node scripts/audit-hydradb-call-sites.mjs",
+    "verify:hydradb-isolation": "node scripts/verify-hydradb-isolation.mjs",
+    "hydradb:legacy": "node scripts/apply-hydradb-legacy-strategy.mjs",
     "screenshots": "PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers node scripts/capture-screenshots.mjs"
   },
   "dependencies": {

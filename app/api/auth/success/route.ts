@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
+import { internalErrorResponse } from "@/lib/api-response";
 import {
   getAuthUser,
   recordAuthSuccess,
   unauthorizedResponse,
 } from "@/lib/auth";
-import type { ApiErrorResponse } from "@/lib/types";
 
 export async function POST(request: Request) {
   try {
@@ -21,12 +21,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to record auth success";
-    console.error("[POST /api/auth/success]", error);
-    return NextResponse.json<ApiErrorResponse>(
-      { error: message },
-      { status: 500 },
-    );
+    return internalErrorResponse("[POST /api/auth/success]", error);
   }
 }

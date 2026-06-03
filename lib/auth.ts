@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 import type { ApiErrorResponse } from "@/lib/types";
 import type { AuthUser, Profile } from "@/lib/auth-types";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export async function getSessionUser(): Promise<{
@@ -127,10 +127,6 @@ export async function guardAdminApi(): Promise<
   return { ok: true, user: authUser };
 }
 
-export function userSubTenantId(userId: string): string {
-  return `user_${userId}`;
-}
-
 export function unauthorizedResponse(): NextResponse<ApiErrorResponse> {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
@@ -146,17 +142,22 @@ export async function logAppAccess(metadata: Record<string, unknown> = {}) {
   await supabase.rpc("log_app_access", { p_metadata: metadata });
 }
 
+/** Server-only: uses service role so clients cannot call record_auth_failure via anon RPC. */
 export async function recordAuthFailure(
   email: string,
   reason: string,
   provider?: string,
 ) {
-  const supabase = await createClient();
-  await supabase.rpc("record_auth_failure", {
+  const supabase = createAdminClient();
+  const { error } = await supabase.rpc("record_auth_failure", {
     p_email: email,
     p_reason: reason,
     p_provider: provider ?? null,
   });
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 export async function recordAuthSuccess(provider?: string) {
@@ -166,10 +167,3 @@ export async function recordAuthSuccess(provider?: string) {
   });
 }
 
-export function getClientIp(request: NextRequest): string | null {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0]?.trim() ?? null;
-  }
-  return request.headers.get("x-real-ip");
-}

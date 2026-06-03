@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  internalErrorResponse,
+  rateLimitResponse,
+} from "@/lib/api-response";
+import { checkAuthFailureRateLimits } from "@/lib/api-rate-limit";
 import { recordAuthFailure } from "@/lib/auth";
 import type { ApiErrorResponse } from "@/lib/types";
 import { authFailureSchema } from "@/lib/validation";
@@ -17,16 +22,15 @@ export async function POST(request: Request) {
     }
 
     const { email, reason, provider } = parsed.data;
+    const rateLimit = checkAuthFailureRateLimits(request, email);
+    if (!rateLimit.ok) {
+      return rateLimitResponse(rateLimit.retryAfterMs);
+    }
+
     await recordAuthFailure(email, reason, provider);
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to record auth failure";
-    console.error("[POST /api/auth/failure]", error);
-    return NextResponse.json<ApiErrorResponse>(
-      { error: message },
-      { status: 500 },
-    );
+    return internalErrorResponse("[POST /api/auth/failure]", error);
   }
 }

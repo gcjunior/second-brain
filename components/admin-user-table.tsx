@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { ProfileSummary } from "@/lib/types";
+import type { AdminPurgeMemoriesResponse, ProfileSummary } from "@/lib/types";
 
 type AdminUserTableProps = {
   initialUsers: ProfileSummary[];
@@ -13,6 +14,7 @@ type AdminUserTableProps = {
 export function AdminUserTable({ initialUsers }: AdminUserTableProps) {
   const [users, setUsers] = useState(initialUsers);
   const [loading, setLoading] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   async function loadUsers() {
     setLoading(true);
@@ -32,6 +34,35 @@ export function AdminUserTable({ initialUsers }: AdminUserTableProps) {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function purgeMemories(user: ProfileSummary) {
+    const confirmed = window.confirm(
+      `Delete all HydraDB memories and knowledge for ${user.email}? This cannot be undone.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingUserId(user.id);
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}/memories`, {
+        method: "DELETE",
+      });
+      const data = (await response.json()) as AdminPurgeMemoriesResponse & {
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data.error ?? "Failed to delete memories");
+      }
+      toast.success(data.message);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete memories",
+      );
+    } finally {
+      setDeletingUserId(null);
     }
   }
 
@@ -86,7 +117,11 @@ export function AdminUserTable({ initialUsers }: AdminUserTableProps) {
                   <th className="py-2 pr-4">Role</th>
                   <th className="py-2 pr-4">Status</th>
                   <th className="py-2 pr-4">Failures</th>
-                  <th className="py-2">Actions</th>
+                  <th className="py-2 pr-4">Actions</th>
+                  <th className="py-2 w-12">
+                    <span className="sr-only">Delete memories</span>
+                    <Trash2 className="size-4" aria-hidden />
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -129,6 +164,18 @@ export function AdminUserTable({ initialUsers }: AdminUserTableProps) {
                           </Button>
                         )}
                       </div>
+                    </td>
+                    <td className="py-3">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={deletingUserId === user.id}
+                        aria-label={`Delete all memories for ${user.email}`}
+                        onClick={() => purgeMemories(user)}
+                      >
+                        <Trash2 className="size-4" aria-hidden />
+                      </Button>
                     </td>
                   </tr>
                 ))}

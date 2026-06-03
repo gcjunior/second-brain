@@ -63,7 +63,7 @@
   - Learning & Ambition (5%): See "Building This Was Actually Interesting" section
 
   CONSTRAINTS (MVP):
-  Single-user, no auth, all input modes share sub-tenant "demo_user".
+  Supabase Auth + admin approval; HydraDB sub_tenant_id = user_<auth.users.id> per user.
 
   DEMO (30 seconds):
   1. Open https://second-brain-blue-eight.vercel.app/
@@ -153,7 +153,7 @@ Second Brain is not a notes app. Notes apps solve storage. **Second Brain solves
 
 > If recall is empty right after saving, wait ~10 seconds and ask again. HydraDB indexing can lag briefly on brand-new memories.
 
-**MVP constraints:** Single-user · No auth · Text and voice input only
+**MVP constraints:** Auth required · Admin approval · Per-user HydraDB isolation
 
 ---
 
@@ -205,9 +205,11 @@ flowchart TB
 ```
 Browser
   └─► POST /api/memories  { content: string }
-        └─► saveMemory()
+        └─► guardApprovedApi() → auth.user.id
+        └─► saveMemory(userId, content)
               ├─ hydra.upload.addMemory({
-              │    sub_tenant_id: "mvp_user",
+              │    tenant_id: HYDRADB_PROJECT_ID,
+              │    sub_tenant_id: "user_<uuid>",
               │    content: content,
               │    infer: false
               │  })
@@ -388,14 +390,14 @@ When a question contains `#hashtags`, `searchMemories()` routes through `memoryM
    supabase link --project-ref <your-project-ref>
    supabase db push
    ```
-   Or run `supabase/migrations/001_auth_schema.sql` in the SQL Editor.
+   Or run migrations `001_auth_schema.sql` then `002_security_hardening.sql` in the SQL Editor.
 5. Seed the admin user (after setting env vars):
    ```bash
    npm run seed:admin
    ```
 6. Sign in at `/login`. New users stay on `/pending` until an admin approves them at `/admin`.
 
-**Roles:** `admin` can approve, block, and unlock users. **3 failed auth attempts** (any method) block the account; only an admin can unlock.
+**Roles:** `admin` can approve, block, and unlock users. **3 failed password/OAuth sign-in failures** (via `/api/auth/failure` after a real client-side auth error) block the account; only an admin can unlock. API routes return **429** when per-IP or per-user rate limits are exceeded.
 
 HydraDB memories are isolated per user under `sub_tenant_id` = `user_<uuid>`.
 
@@ -526,5 +528,5 @@ The speed that matters in a hackathon isn't typing speed. It's the time between 
 ---
 
 <div align="center">
-<img src="docs/screenshots/SecondBrain_Footer.svg" width="100%" alt="Second Brain — Built for the Cursor Hackathon · Powered by HydraDB and OpenAI gpt-4o-mini · Single-user MVP · No auth · MIT License">
+<img src="docs/screenshots/SecondBrain_Footer.svg" width="100%" alt="Second Brain — Built for the Cursor Hackathon · Powered by HydraDB and OpenAI gpt-4o-mini · Supabase Auth · Per-user memory isolation · MIT License">
 </div>

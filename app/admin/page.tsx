@@ -30,7 +30,7 @@ export default async function AdminPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
           <p className="text-sm text-muted-foreground">
-            Approve, block, or unlock user accounts
+            Approve, block, unlock users, or purge HydraDB memories per user
           </p>
         </div>
         <div className="flex gap-2">

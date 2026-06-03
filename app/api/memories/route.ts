@@ -1,10 +1,26 @@
 import { NextResponse } from "next/server";
+import {
+  internalErrorResponse,
+  rateLimitResponse,
+} from "@/lib/api-response";
+import { checkMemoryRateLimit } from "@/lib/api-rate-limit";
+import { guardApprovedApi, logAppAccess } from "@/lib/auth";
 import { saveMemory } from "@/lib/hydradb";
 import type { ApiErrorResponse, SaveMemoryResponse } from "@/lib/types";
 import { saveMemorySchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
+    const auth = await guardApprovedApi();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const rateLimit = checkMemoryRateLimit(auth.user.id);
+    if (!rateLimit.ok) {
+      return rateLimitResponse(rateLimit.retryAfterMs);
+    }
+
     const body = await request.json();
     const parsed = saveMemorySchema.safeParse(body);
 
@@ -16,10 +32,12 @@ export async function POST(request: Request) {
       );
     }
 
-<<<<<<< HEAD
-    const { sourceId, status } = await saveMemory(parsed.data.content);
-=======
-    const { sourceId, status, tags } = await saveMemory(parsed.data.content);
+    await logAppAccess({ route: "/api/memories" });
+
+    const { sourceId, status, tags } = await saveMemory(
+      auth.user.id,
+      parsed.data.content,
+    );
 
     const baseMessage =
       tags.length > 0
@@ -29,25 +47,14 @@ export async function POST(request: Request) {
       status === "queued"
         ? `${baseMessage}. Still indexing — try asking again in ~30 seconds.`
         : baseMessage;
->>>>>>> origin/main
 
     return NextResponse.json<SaveMemoryResponse>({
       sourceId,
       status,
-<<<<<<< HEAD
-      message: "Memory saved successfully",
-=======
       tags,
       message,
->>>>>>> origin/main
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to save memory";
-    console.error("[POST /api/memories]", error);
-    return NextResponse.json<ApiErrorResponse>(
-      { error: message },
-      { status: 500 },
-    );
+    return internalErrorResponse("[POST /api/memories]", error);
   }
 }

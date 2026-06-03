@@ -3,12 +3,9 @@
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
-<<<<<<< HEAD
-=======
 
 ## Project conventions
 
 - **Cursor rules**: `.cursor/rules/` — always-on and file-scoped patterns
 - **Agent skills**: `.cursor/skills/` — architecture, API routes, UI components, code review
 - **Architecture reference**: `README.md`
->>>>>>> origin/main

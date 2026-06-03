@@ -3,22 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-<<<<<<< HEAD
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-=======
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "seed:admin": "node scripts/seed-admin.mjs",
+    "audit:hydradb": "node scripts/audit-hydradb-call-sites.mjs",
+    "verify:hydradb-isolation": "node scripts/verify-hydradb-isolation.mjs",
+    "hydradb:legacy": "node scripts/apply-hydradb-legacy-strategy.mjs",
     "screenshots": "PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers node scripts/capture-screenshots.mjs"
->>>>>>> origin/main
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@hydradb/sdk": "^0.0.3",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
@@ -27,10 +26,7 @@
     "openai": "^6.39.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-<<<<<<< HEAD
-=======
     "react-force-graph-2d": "^1.29.1",
->>>>>>> origin/main
     "shadcn": "^4.8.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
@@ -44,10 +40,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
-<<<<<<< HEAD
-=======
     "playwright": "^1.60.0",
->>>>>>> origin/main
     "tailwindcss": "^4",
     "typescript": "^5"
   }

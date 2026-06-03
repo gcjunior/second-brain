@@ -31,11 +31,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-<<<<<<< HEAD
-      <body className="min-h-full flex flex-col">
-=======
       <body className="min-h-full">
->>>>>>> origin/main
         <ThemeProvider>
           {children}
           <Toaster richColors position="top-center" />

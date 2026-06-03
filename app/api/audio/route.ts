@@ -1,4 +1,10 @@
 import { NextResponse } from "next/server";
+import {
+  internalErrorResponse,
+  rateLimitResponse,
+} from "@/lib/api-response";
+import { checkAudioRateLimit } from "@/lib/api-rate-limit";
+import { guardApprovedApi, logAppAccess } from "@/lib/auth";
 import { saveAudioTranscriptionMemory } from "@/lib/hydradb";
 import { transcribeAudioFile } from "@/lib/openai";
 import type { ApiErrorResponse, AudioMemoryResponse } from "@/lib/types";
@@ -6,6 +12,16 @@ import { audioUploadSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
+    const auth = await guardApprovedApi();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const rateLimit = checkAudioRateLimit(auth.user.id);
+    if (!rateLimit.ok) {
+      return rateLimitResponse(rateLimit.retryAfterMs);
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
     const contextValue = formData.get("context");
@@ -36,8 +52,10 @@ export async function POST(request: Request) {
       );
     }
 
+    await logAppAccess({ route: "/api/audio" });
+
     const transcript = await transcribeAudioFile(file, parsed.data.context);
-    const result = await saveAudioTranscriptionMemory({
+    const result = await saveAudioTranscriptionMemory(auth.user.id, {
       transcript,
       fileName: parsed.data.fileName,
       contentType: parsed.data.contentType,
@@ -53,12 +71,6 @@ export async function POST(request: Request) {
           : "Audio transcribed and saved as a memory",
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to process audio";
-    console.error("[POST /api/audio]", error);
-    return NextResponse.json<ApiErrorResponse>(
-      { error: message },
-      { status: 500 },
-    );
+    return internalErrorResponse("[POST /api/audio]", error);
   }
 }

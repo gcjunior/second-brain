@@ -20,7 +20,7 @@
 - [ ] New response types in `lib/types.ts`
 - [ ] Limits use `lib/constants.ts`
 - [ ] No `"use client"` in lib files
-- [ ] HydraDB uses `SUB_TENANT_ID = "mvp_user"` unless multi-tenant was explicitly requested
+- [ ] HydraDB `userId` comes only from `guardApprovedApi().user.id` (never client-supplied tenant/sub-tenant); run `npm run audit:hydradb`
 
 ## Components
 

@@ -22,10 +22,7 @@
 
 # misc
 .DS_Store
-<<<<<<< HEAD
-=======
 .playwright-browsers
->>>>>>> origin/main
 *.pem
 
 # debug
@@ -35,11 +32,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-<<<<<<< HEAD
-.env*
-=======
 .env
->>>>>>> origin/main
 
 # vercel
 .vercel

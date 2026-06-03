@@ -1,10 +1,5 @@
 "use client";
 
-<<<<<<< HEAD
-import {
-  CircleHelp,
-  ClipboardList,
-=======
 import dynamic from "next/dynamic";
 import {
   Brain,
@@ -12,7 +7,6 @@ import {
   ClipboardList,
   CornerDownRight,
   FileUp,
->>>>>>> origin/main
   Loader2,
   Save,
   Trash2,
@@ -20,39 +14,14 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { ResultPanel } from "@/components/result-panel";
-<<<<<<< HEAD
-=======
 import { UploadPanel } from "@/components/upload-panel";
->>>>>>> origin/main
 import { VoiceInput } from "@/components/voice-input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-<<<<<<< HEAD
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import type { AskResponse, MemorySource, SaveMemoryResponse } from "@/lib/types";
-import { cn } from "@/lib/utils";
-
-const MAX_SAVE_LENGTH = 5000;
-const MAX_ASK_LENGTH = 2000;
-
-const tabTriggerClassName = cn(
-  "flex-1 gap-2 rounded-none border-0 py-3.5 text-muted-foreground shadow-none",
-  "data-active:bg-transparent data-active:text-primary dark:data-active:bg-transparent",
-  "data-active:after:h-1 data-active:after:bg-primary data-active:after:opacity-100"
-);
-
-type Mode = "save" | "ask";
-=======
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_ASK_LENGTH, MAX_SAVE_LENGTH } from "@/lib/constants";
-import type {
-  AskResponse,
-  MemorySource,
-  SaveMemoryResponse,
-  WorkspaceMode,
-} from "@/lib/types";
+import type { AskResponse, SaveMemoryResponse, WorkspaceMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const tabTriggerClassName = cn(
@@ -76,7 +45,6 @@ const BrainPanel = dynamic(
     ),
   },
 );
->>>>>>> origin/main
 
 type StatusState =
   | { type: "idle" }
@@ -85,24 +53,11 @@ type StatusState =
   | { type: "error"; message: string };
 
 export function MemoryInputCard() {
-<<<<<<< HEAD
-  const [mode, setMode] = useState<Mode>("save");
-=======
   const [mode, setMode] = useState<WorkspaceMode>("save");
->>>>>>> origin/main
   const [text, setText] = useState("");
   const [status, setStatus] = useState<StatusState>({ type: "idle" });
   const [answer, setAnswer] = useState<string | null>(null);
-  const [sources, setSources] = useState<MemorySource[]>([]);
 
-<<<<<<< HEAD
-  const isLoading = status.type === "loading";
-  const maxLength = mode === "save" ? MAX_SAVE_LENGTH : MAX_ASK_LENGTH;
-  const placeholder =
-    mode === "save"
-      ? "Type a note, idea, or fact you want to remember..."
-      : "Ask a question about your saved memories...";
-=======
   const isInputMode = mode === "save" || mode === "ask";
   const isLoading = status.type === "loading" && isInputMode;
   const maxLength = mode === "save" ? MAX_SAVE_LENGTH : MAX_ASK_LENGTH;
@@ -110,18 +65,14 @@ export function MemoryInputCard() {
     mode === "save"
       ? "Type a note, idea, or fact you want to remember... Use #tags like #work #ideas"
       : "Ask a question about your saved memories... Use #tags like #work to narrow results";
->>>>>>> origin/main
   const inputId = mode === "save" ? "memory-input" : "question-input";
   const inputLabel = mode === "save" ? "Memory text" : "Question text";
 
   function appendTranscript(transcript: string) {
-<<<<<<< HEAD
-=======
     if (!isInputMode) {
       return;
     }
 
->>>>>>> origin/main
     setText((current) => {
       const trimmed = current.trim();
       const next = trimmed ? `${trimmed} ${transcript}` : transcript;
@@ -131,7 +82,6 @@ export function MemoryInputCard() {
 
   function resetResults() {
     setAnswer(null);
-    setSources([]);
   }
 
   async function handleSave() {
@@ -159,14 +109,6 @@ export function MemoryInputCard() {
         throw new Error(data.error ?? "Failed to save memory");
       }
 
-<<<<<<< HEAD
-      setStatus({
-        type: "success",
-        message: `Memory saved (ID: ${data.sourceId.slice(0, 8)}…, status: ${data.status}).`,
-      });
-      setText("");
-      toast.success("Memory saved");
-=======
       const tagSummary =
         data.tags.length > 0 ? ` Tags: ${data.tags.join(", ")}.` : "";
 
@@ -176,7 +118,6 @@ export function MemoryInputCard() {
       });
       setText("");
       toast.success(data.message);
->>>>>>> origin/main
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to save memory";
@@ -208,14 +149,12 @@ export function MemoryInputCard() {
       }
 
       setAnswer(data.answer);
-      setSources(data.sources);
       setStatus({ type: "success", message: "Answer ready." });
       toast.success("Answer generated");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to get an answer";
       setAnswer(null);
-      setSources([]);
       setStatus({ type: "error", message });
       toast.error(message);
     }
@@ -224,112 +163,15 @@ export function MemoryInputCard() {
   function handlePrimaryAction() {
     if (mode === "save") {
       void handleSave();
-<<<<<<< HEAD
-    } else {
-=======
       return;
     }
 
     if (mode === "ask") {
->>>>>>> origin/main
       void handleAsk();
     }
   }
 
   return (
-<<<<<<< HEAD
-    <div className="flex w-full flex-col gap-6">
-      <Card className="gap-0 overflow-hidden rounded-2xl border-border/60 py-0 shadow-sm">
-        <Tabs
-          value={mode}
-          onValueChange={(value) => {
-            setMode(value as Mode);
-            setStatus({ type: "idle" });
-            resetResults();
-          }}
-          className="gap-0"
-        >
-          <TabsList
-            variant="line"
-            className="h-auto w-full justify-stretch gap-0 border-b border-border bg-transparent px-2"
-          >
-            <TabsTrigger value="save" className={tabTriggerClassName}>
-              <ClipboardList className="size-4" />
-              Save Memory
-            </TabsTrigger>
-            <TabsTrigger value="ask" className={tabTriggerClassName}>
-              <CircleHelp className="size-4" />
-              Ask Question
-            </TabsTrigger>
-          </TabsList>
-
-          <CardContent className="space-y-4 pt-4 pb-6">
-            <div className="rounded-xl bg-muted/40 p-3 dark:bg-muted/20">
-              <Textarea
-                id={inputId}
-                aria-label={inputLabel}
-                placeholder={placeholder}
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                maxLength={maxLength}
-                rows={8}
-                disabled={isLoading}
-                className="min-h-44 resize-y border-0 bg-transparent px-1 py-2 shadow-none focus-visible:border-transparent focus-visible:ring-0 disabled:bg-transparent dark:bg-transparent dark:disabled:bg-transparent"
-              />
-              <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-2">
-                <span
-                  className={cn(
-                    "text-xs tabular-nums text-muted-foreground",
-                    text.length >= maxLength && "text-destructive"
-                  )}
-                >
-                  {text.length} / {maxLength}
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setText("")}
-                  disabled={isLoading || text.length === 0}
-                  className="h-7 gap-1.5 text-muted-foreground"
-                >
-                  <Trash2 className="size-3.5" />
-                  Clear
-                </Button>
-              </div>
-            </div>
-
-            <VoiceInput
-              onTranscript={appendTranscript}
-              disabled={isLoading}
-            />
-
-            <Button
-              onClick={handlePrimaryAction}
-              disabled={isLoading}
-              className="w-full"
-              size="lg"
-            >
-              {isLoading ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : mode === "save" ? (
-                <Save className="size-4" />
-              ) : (
-                <CircleHelp className="size-4" />
-              )}
-              {mode === "save" ? "Save Memory" : "Ask"}
-            </Button>
-
-            {status.type !== "idle" ? (
-              <Alert
-                variant={status.type === "error" ? "destructive" : "default"}
-              >
-                <AlertDescription>{status.message}</AlertDescription>
-              </Alert>
-            ) : null}
-          </CardContent>
-        </Tabs>
-=======
     <div className="flex w-full flex-col gap-5">
       <Card className="gap-0 overflow-hidden rounded-3xl border-border/70 bg-card/85 py-0 shadow-card backdrop-blur">
         <div className="border-b border-border/70 px-4 py-4 sm:px-5">
@@ -499,14 +341,12 @@ export function MemoryInputCard() {
             )}
           </CardContent>
         </div>
->>>>>>> origin/main
       </Card>
 
       <ResultPanel
         mode={mode}
         isLoading={isLoading && mode === "ask"}
         answer={answer}
-        sources={sources}
       />
     </div>
   );

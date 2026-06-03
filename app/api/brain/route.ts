@@ -1,17 +1,35 @@
 import { NextResponse } from "next/server";
+import {
+  internalErrorResponse,
+  rateLimitResponse,
+} from "@/lib/api-response";
+import { checkBrainRateLimit } from "@/lib/api-rate-limit";
+import { guardApprovedApi, logAppAccess } from "@/lib/auth";
 import { tripletsToGraphData } from "@/lib/graph-data";
 import { fetchBrainGraph } from "@/lib/hydradb";
-import type { ApiErrorResponse, BrainGraphResponse } from "@/lib/types";
+import type { BrainGraphResponse } from "@/lib/types";
 
 export async function GET(request: Request) {
   try {
+    const auth = await guardApprovedApi();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const rateLimit = checkBrainRateLimit(auth.user.id);
+    if (!rateLimit.ok) {
+      return rateLimitResponse(rateLimit.retryAfterMs);
+    }
+
     const { searchParams } = new URL(request.url);
     const sourceId = searchParams.get("sourceId") ?? undefined;
     const cursorParam = searchParams.get("cursor");
     const cursor =
       cursorParam !== null && cursorParam !== "" ? Number(cursorParam) : null;
 
-    const raw = await fetchBrainGraph({
+    await logAppAccess({ route: "/api/brain" });
+
+    const raw = await fetchBrainGraph(auth.user.id, {
       sourceId,
       cursor: Number.isFinite(cursor) ? cursor : null,
     });
@@ -27,12 +45,6 @@ export async function GET(request: Request) {
       isTruncated: raw.isTruncated,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to load brain graph";
-    console.error("[GET /api/brain]", error);
-    return NextResponse.json<ApiErrorResponse>(
-      { error: message },
-      { status: 500 },
-    );
+    return internalErrorResponse("[GET /api/brain]", error);
   }
 }

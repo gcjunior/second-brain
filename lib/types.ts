@@ -3,21 +3,15 @@ export type MemorySource = {
   title: string | null;
   content: string;
   score: number | null;
-<<<<<<< HEAD
-=======
   sourceType: "knowledge" | "memory";
   metadata: Record<string, unknown> | null;
->>>>>>> origin/main
 };
 
 export type SaveMemoryResponse = {
   sourceId: string;
   status: string;
   message: string;
-<<<<<<< HEAD
-=======
   tags: string[];
->>>>>>> origin/main
 };
 
 export type AskResponse = {
@@ -28,8 +22,35 @@ export type AskResponse = {
 export type ApiErrorResponse = {
   error: string;
 };
-<<<<<<< HEAD
-=======
+
+export type ProfileSummary = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: "admin" | "user";
+  account_status:
+    | "pending_approval"
+    | "approved"
+    | "blocked"
+    | "rejected";
+  failed_login_count: number;
+  approved_at: string | null;
+  blocked_at: string | null;
+  block_reason: string | null;
+  last_login_at: string | null;
+  created_at: string;
+};
+
+export type AdminUsersResponse = {
+  users: ProfileSummary[];
+};
+
+export type AdminPurgeMemoriesResponse = {
+  memoryCount: number;
+  knowledgeCount: number;
+  deletedIds: number;
+  message: string;
+};
 
 export type UploadKnowledgeResponse = {
   sourceId: string;
@@ -69,4 +90,3 @@ export type BrainGraphResponse = {
   nextCursor: number | null;
   isTruncated: boolean;
 };
->>>>>>> origin/main

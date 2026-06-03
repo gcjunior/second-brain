@@ -37,8 +37,8 @@
   <!-- Step 1: User -->
   <rect x="30" y="55" width="108" height="52" rx="10" fill="#FDF0E4" stroke="#C97B3A" stroke-width="1"/>
   <text font-family="Georgia,serif" font-size="11" font-weight="700" fill="#712B13" x="84" y="75" text-anchor="middle">User</text>
-  <text font-family="Georgia,serif" font-size="9" fill="#854F0B" x="84" y="90" text-anchor="middle">types or speaks</text>
-  <text font-family="Georgia,serif" font-size="9" fill="#854F0B" x="84" y="102" text-anchor="middle">a memory</text>
+  <text font-family="Georgia,serif" font-size="9" fill="#854F0B" x="84" y="90" text-anchor="middle">text, voice,</text>
+  <text font-family="Georgia,serif" font-size="9" fill="#854F0B" x="84" y="102" text-anchor="middle">or upload</text>
   <rect class="p1" x="26" y="51" width="116" height="60" rx="13" fill="none" stroke="#C97B3A" stroke-width="2.5" opacity="0"/>
 
   <!-- Arrow 1 -->
@@ -48,7 +48,7 @@
   <!-- Step 2: POST -->
   <rect x="178" y="55" width="128" height="52" rx="10" fill="#FDF0E4" stroke="#C97B3A" stroke-width="1"/>
   <text font-family="Georgia,serif" font-size="10" font-weight="700" fill="#712B13" x="242" y="73" text-anchor="middle">POST /api/memories</text>
-  <text font-family="Georgia,serif" font-size="9" fill="#993C1D" x="242" y="89" text-anchor="middle">{ content: string }</text>
+  <text font-family="Georgia,serif" font-size="9" fill="#993C1D" x="242" y="89" text-anchor="middle">{ content } · #tags</text>
   <text font-family="Georgia,serif" font-size="9" fill="#854F0B" x="242" y="101" text-anchor="middle">Next.js route handler</text>
   <rect class="p2" x="174" y="51" width="136" height="60" rx="13" fill="none" stroke="#C97B3A" stroke-width="2.5" opacity="0"/>
 
@@ -76,7 +76,7 @@
 
   <!-- Poll loop container -->
   <rect x="178" y="148" width="420" height="150" rx="12" fill="#FAEEDA" stroke="#BA7517" stroke-width="1" stroke-dasharray="6 3" opacity="0.7"/>
-  <text font-family="Georgia,serif" font-size="10" font-style="italic" font-weight="600" fill="#993C1D" x="388" y="168" text-anchor="middle">polling loop — up to ~12 seconds</text>
+  <text font-family="Georgia,serif" font-size="10" font-style="italic" font-weight="600" fill="#993C1D" x="388" y="168" text-anchor="middle">polling loop — up to ~24 seconds</text>
 
   <!-- Arrow 4: down into poll -->
   <line x1="582" y1="107" x2="582" y2="148" stroke="#D3D1C7" stroke-width="1.5" marker-end="url(#arrow)"/>

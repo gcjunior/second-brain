@@ -1,5 +1,5 @@
 ---
-description: Second Brain MVP architecture — server boundaries, data flow, out-of-scope features
+description: Second Brain architecture — server boundaries, data flow, auth
 alwaysApply: true
 ---
 
@@ -7,19 +7,26 @@ alwaysApply: true
 
 ## Data flow
 
-Browser (`components/`) → `fetch /api/*` → Route Handlers (`app/api/`) → `lib/*` → HydraDB / OpenAI.
+Browser (`components/`) → `fetch /api/*` → Route Handlers (`app/api/`) → `lib/*` → Supabase (auth/profiles) + HydraDB / OpenAI.
 
 ## Server-only secrets
 
-API keys and external clients live only in `lib/*` (and Route Handlers that call `lib/*`). Never read `process.env` for secrets in client components.
+API keys and external clients live only in `lib/*` (and Route Handlers that call `lib/*`). Never read `process.env` for secrets in client components. `SUPABASE_SERVICE_ROLE_KEY` is server-only (seed scripts).
+
+## Authentication
+
+- **Supabase Auth**: OAuth (Google, GitHub, Azure) + email/password
+- **Postgres** (`profiles`, `access_events`, `admin_actions`) with **RLS**
+- **Middleware** ([`middleware.ts`](middleware.ts)): session refresh, route gating by `account_status`
+- **API guards** ([`lib/auth.ts`](lib/auth.ts)): `guardApprovedApi()` on memory/ask/brain routes; `guardAdminApi()` on admin routes
+- New users: `pending_approval` until admin approves; 3 failed auth attempts → `blocked` (admin unlock)
+- HydraDB: per-user `sub_tenant_id` = `user_<auth.users.id>`
 
 ## MVP constraints (do not add unless explicitly requested)
 
-- No authentication
-- No in-repo database (HydraDB is the memory store)
-- No background jobs, Redis, or file uploads
+- No background jobs, Redis
 - No global state libraries (Redux, Zustand, React Query)
-- Single sub-tenant: `mvp_user` in `lib/hydradb.ts`
+- File uploads limited to audio/Markdown in existing API routes
 
 ## Next.js 16
 
@@ -30,7 +37,9 @@ This project uses Next.js 16 with breaking API changes. Read `node_modules/next/
 | Concern | Location |
 | --- | --- |
 | HTTP validation + response | `app/api/*/route.ts` |
+| Auth session + guards | `lib/auth.ts`, `lib/supabase/*` |
 | Business logic, SDK calls | `lib/*.ts` |
 | Zod schemas | `lib/validation.ts` |
 | Shared types | `lib/types.ts` |
 | UI | `components/` (feature) or `components/ui/` (shadcn primitives) |
+| DB migrations | `supabase/migrations/` |

@@ -36,7 +36,7 @@ Keep `app/page.tsx` and `app/layout.tsx` as server components when possible.
 ## Save flow
 
 1. `POST /api/memories` validates `content` (1–`MAX_SAVE_LENGTH` chars)
-2. `saveMemory()` → HydraDB `upload.addMemory` (`sub_tenant_id: "mvp_user"`, `infer: false`)
+2. `saveMemory(userId, content)` → HydraDB `upload.addMemory` (`sub_tenant_id: "user_<uuid>"`, `infer: false`)
 3. Poll `upload.verifyProcessing` up to ~12s until ready status
 4. Return `{ sourceId, status, message }`
 
@@ -47,9 +47,12 @@ Keep `app/page.tsx` and `app/layout.tsx` as server components when possible.
 3. `generateGroundedAnswer()` → OpenAI `gpt-4o-mini`, temperature `0.2`, memories-only system prompt
 4. Return `{ answer, sources }`
 
-## Out of scope (unless explicitly requested)
+## Authentication
 
-- Authentication and per-user tenants
+- Supabase Auth + `profiles` table (see `lib/auth.ts`, `middleware.ts`)
+- Approved users only for `/api/memories`, `/api/ask`, etc.
+
+## Out of scope (unless explicitly requested)
 - In-repo database, Redis, background jobs
 - Server Actions (use Route Handlers)
 - Global state libraries

@@ -1,17 +1,29 @@
 import { NextResponse } from "next/server";
-<<<<<<< HEAD
-import { searchMemories } from "@/lib/hydradb";
-=======
+import {
+  internalErrorResponse,
+  rateLimitResponse,
+} from "@/lib/api-response";
+import { checkAskRateLimit } from "@/lib/api-rate-limit";
+import { guardApprovedApi, logAppAccess } from "@/lib/auth";
 import { MAX_MEMORY_TAGS } from "@/lib/constants";
 import { searchMemories } from "@/lib/hydradb";
 import { getQuestionForAnswer } from "@/lib/memory-content";
->>>>>>> origin/main
 import { generateGroundedAnswer } from "@/lib/openai";
 import type { ApiErrorResponse, AskResponse } from "@/lib/types";
 import { askQuestionSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
+    const auth = await guardApprovedApi();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const rateLimit = checkAskRateLimit(auth.user.id);
+    if (!rateLimit.ok) {
+      return rateLimitResponse(rateLimit.retryAfterMs);
+    }
+
     const body = await request.json();
     const parsed = askQuestionSchema.safeParse(body);
 
@@ -23,31 +35,21 @@ export async function POST(request: Request) {
       );
     }
 
-<<<<<<< HEAD
-    const sources = await searchMemories(parsed.data.question);
-    const answer = await generateGroundedAnswer(
-      parsed.data.question,
-      sources,
-    );
-
-=======
     const { questionForAnswer } = getQuestionForAnswer(
       parsed.data.question,
       MAX_MEMORY_TAGS,
     );
 
-    const sources = await searchMemories(parsed.data.question);
+    await logAppAccess({ route: "/api/ask" });
+
+    const sources = await searchMemories(
+      auth.user.id,
+      parsed.data.question,
+    );
     const answer = await generateGroundedAnswer(questionForAnswer, sources);
 
->>>>>>> origin/main
     return NextResponse.json<AskResponse>({ answer, sources });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to answer question";
-    console.error("[POST /api/ask]", error);
-    return NextResponse.json<ApiErrorResponse>(
-      { error: message },
-      { status: 500 },
-    );
+    return internalErrorResponse("[POST /api/ask]", error);
   }
 }

@@ -1,21 +1,3 @@
-<<<<<<< HEAD
-# Second Brain
-
-A single-user MVP web app for capturing personal memories (text or voice) and asking grounded questions later. Memories are stored and retrieved with [HydraDB](https://docs.hydradb.com/), and answers are generated with the OpenAI API.
-
-## Stack
-
-- **Next.js** (App Router) + **React** + **TypeScript**
-- **Tailwind CSS** + **shadcn/ui**
-- **HydraDB** (`@hydradb/sdk`) for memory storage and semantic recall
-- **OpenAI** (`gpt-4o-mini`) for grounded answer generation
-- **Web Speech API** for browser voice input
-- **Zod** for request validation
-
-## Environment variables
-
-Create a `.env.local` file (see `.env.example`):
-=======
 **Live:** [https://second-brain-blue-eight.vercel.app/](https://second-brain-blue-eight.vercel.app/)
 
 <!--
@@ -81,7 +63,7 @@ Create a `.env.local` file (see `.env.example`):
   - Learning & Ambition (5%): See "Building This Was Actually Interesting" section
 
   CONSTRAINTS (MVP):
-  Single-user, no auth, all input modes share sub-tenant "demo_user".
+  Supabase Auth + admin approval; HydraDB sub_tenant_id = user_<auth.users.id> per user.
 
   DEMO (30 seconds):
   1. Open https://second-brain-blue-eight.vercel.app/
@@ -148,7 +130,7 @@ Second Brain is not a notes app. Notes apps solve storage. **Second Brain solves
 **The bigger vision:** Today you type or speak memories manually. That's the MVP constraint. The real destination is ambient capture — a wearable that passively records what you say, hear, and do, feeding the same recall engine automatically. You'd never think to save anything. You'd just ask. The hard problem was always retrieval, not capture. Second Brain solves retrieval first. The input layer is a detail.
 
 <div align="center">
-<img src="docs/screenshots/SecondBrain_Vision.svg" width="100%" alt="Vision diagram: today input is manual text and voice, future input is ambient wearable capture — the HydraDB recall engine is identical in both cases, proving the architecture scales beyond MVP">
+<img src="docs/screenshots/SecondBrain_Vision.svg" width="100%" alt="Vision diagram: today input is text, voice, and file upload; future input is ambient wearable capture — the HydraDB recall engine is identical in both cases, proving the architecture scales beyond MVP">
 </div>
 
 <div align="center">
@@ -171,7 +153,7 @@ Second Brain is not a notes app. Notes apps solve storage. **Second Brain solves
 
 > If recall is empty right after saving, wait ~10 seconds and ask again. HydraDB indexing can lag briefly on brand-new memories.
 
-**MVP constraints:** Single-user · No auth · Text and voice input only
+**MVP constraints:** Auth required · Admin approval · Per-user HydraDB isolation
 
 ---
 
@@ -216,7 +198,6 @@ flowchart TB
 **Stack:** Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · shadcn/ui · HydraDB (`@hydradb/sdk`) · OpenAI `gpt-4o-mini` + Whisper · Web Speech API · react-force-graph-2d · Zod · sonner · next-themes
 
 
-
 ---
 
 ### Save Flow — Indexing-Aware Memory Ingestion
@@ -224,9 +205,11 @@ flowchart TB
 ```
 Browser
   └─► POST /api/memories  { content: string }
-        └─► saveMemory()
+        └─► guardApprovedApi() → auth.user.id
+        └─► saveMemory(userId, content)
               ├─ hydra.upload.addMemory({
-              │    sub_tenant_id: "mvp_user",
+              │    tenant_id: HYDRADB_PROJECT_ID,
+              │    sub_tenant_id: "user_<uuid>",
               │    content: content,
               │    infer: false
               │  })
@@ -360,6 +343,12 @@ When a question contains `#hashtags`, `searchMemories()` routes through `memoryM
 | Path | Role |
 | --- | --- |
 | `app/page.tsx` | Home UI (save / ask / brain tabs) |
+| `app/login/page.tsx` | Sign in (OAuth + email) |
+| `app/admin/page.tsx` | Admin user approval console |
+| `middleware.ts` | Session refresh + route gating |
+| `lib/auth.ts` | Session helpers, API guards |
+| `lib/supabase/` | Supabase browser/server clients |
+| `supabase/migrations/` | Postgres schema, RLS, RPCs |
 | `app/api/memories/route.ts` | Text memory save endpoint |
 | `app/api/ask/route.ts` | Dual-recall ask endpoint |
 | `app/api/audio/route.ts` | Audio upload → Whisper → save memory |
@@ -376,89 +365,61 @@ When a question contains `#hashtags`, `searchMemories()` routes through `memoryM
 ---
 
 ### Environment Variables
->>>>>>> origin/main
 
 | Variable | Description |
 | --- | --- |
 | `OPENAI_API_KEY` | OpenAI API key for answer generation |
 | `HYDRADB_API_KEY` | HydraDB API key from [app.hydradb.com](https://app.hydradb.com) |
 | `HYDRADB_PROJECT_ID` | HydraDB `tenant_id` for your workspace |
-<<<<<<< HEAD
-| `HYDRADB_URL` | Optional custom API base URL (defaults to `https://api.hydradb.com`) |
-
-## How to run locally
-
-1. Install dependencies:
-
-=======
 | `HYDRADB_URL` | Optional. Defaults to `https://api.hydradb.com` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (public) key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (server + `npm run seed:admin` only) |
+| `ADMIN_SEED_EMAIL` | Email for the bootstrap admin account |
+| `ADMIN_SEED_PASSWORD` | Optional password for seed script (generated if omitted) |
+
+---
+
+### Authentication (Supabase)
+
+1. Create a [Supabase](https://supabase.com) project.
+2. Enable Auth providers: **Google**, **GitHub**, **Azure**, and **Email**.
+3. Set **Site URL** to `http://localhost:3000` and add redirect URL `http://localhost:3000/auth/callback`.
+4. Apply the schema:
+   ```bash
+   supabase link --project-ref <your-project-ref>
+   supabase db push
+   ```
+   Or run migrations `001_auth_schema.sql` then `002_security_hardening.sql` in the SQL Editor.
+5. Seed the admin user (after setting env vars):
+   ```bash
+   npm run seed:admin
+   ```
+6. Sign in at `/login`. New users stay on `/pending` until an admin approves them at `/admin`.
+
+**Roles:** `admin` can approve, block, and unlock users. **3 failed password/OAuth sign-in failures** (via `/api/auth/failure` after a real client-side auth error) block the account; only an admin can unlock. API routes return **429** when per-IP or per-user rate limits are exceeded.
+
+HydraDB memories are isolated per user under `sub_tenant_id` = `user_<uuid>`.
 
 ---
 
 ### Running Locally
 
 1. Install dependencies:
->>>>>>> origin/main
 ```bash
 npm install
 ```
 
-<<<<<<< HEAD
-2. Copy environment variables and fill in your keys:
-
-=======
 2. Copy and fill environment variables:
->>>>>>> origin/main
 ```bash
 cp .env.example .env.local
 ```
 
-<<<<<<< HEAD
-3. Ensure your HydraDB tenant exists and `HYDRADB_PROJECT_ID` matches your `tenant_id`.
-
-4. Start the dev server:
-
-=======
 3. Start the dev server:
->>>>>>> origin/main
 ```bash
 npm run dev
 ```
 
-<<<<<<< HEAD
-5. Open [http://localhost:3000](http://localhost:3000).
-
-## API routes
-
-- `POST /api/memories` — body: `{ "content": "..." }` — saves a memory to HydraDB
-- `POST /api/ask` — body: `{ "question": "..." }` — recalls memories and returns `{ answer, sources }`
-
-## How to deploy to Vercel
-
-1. Push this repository to GitHub.
-2. Import the project in [Vercel](https://vercel.com).
-3. Add the environment variables from `.env.example` in the Vercel project settings.
-4. Deploy. No extra services are required for this MVP.
-
-## Current limitations
-
-- **No authentication** — anyone with the URL can use the app
-- **Single shared namespace** — all memories use one fixed sub-tenant (`mvp_user`)
-- **HydraDB indexing is async** — the app polls briefly after save; very new memories may need a few seconds before recall works reliably
-- **Voice input** — depends on browser support (Chrome/Edge work best; Safari support varies)
-- **No memory list/edit/delete UI** — only save and ask flows
-- **No file upload, PostgreSQL, Redis, or background jobs**
-
-## Future improvements
-
-- User accounts and per-user sub-tenants
-- Memory list, search, edit, and delete
-- Longer ingestion polling or status UI after save
-- Streaming answers from OpenAI
-- `infer: true` for richer memory extraction on conversational notes
-- Export/import of memories
-- Mobile-optimized voice UX
-=======
 4. Open [http://localhost:3000](http://localhost:3000)
 
 | Command | Purpose |
@@ -467,6 +428,7 @@ npm run dev
 | `npm run build` | Production build |
 | `npm run start` | Run production build |
 | `npm run lint` | ESLint |
+| `npm run seed:admin` | Create/promote admin user via Supabase service role |
 | `npm run screenshots` | Capture README screenshots with Playwright (dev server must be running) |
 
 ---
@@ -512,8 +474,9 @@ Limit: 1–2000 characters.
 
 | Constraint | Detail |
 |---|---|
-| No authentication | Single shared namespace (`mvp_user`). Anyone with the URL can read/write memories. |
-| Single user | No per-user isolation in this MVP. |
+| Authentication required | Supabase session required for app and APIs. |
+| Admin approval | New accounts are `pending_approval` until an admin approves. |
+| Per-user HydraDB | Each user has an isolated `user_<uuid>` sub-tenant. |
 | Text + voice only | No file uploads, PDFs, or image parsing. |
 | Indexing delay | New memories searchable within ~2–10 seconds of saving. |
 | Voice browser support | Chrome/Edge recommended. Safari partial. |
@@ -525,16 +488,15 @@ Limit: 1–2000 characters.
 
 1. Push this repo to GitHub (must be public for submission)
 2. Import at [vercel.com/new](https://vercel.com/new)
-3. Add the four environment variables in Vercel project settings
-4. Deploy — no additional infrastructure required
-
-> ⚠️ No auth on this MVP. Anyone with the URL can read and write the shared `mvp_user` memory namespace.
+3. Add environment variables in Vercel project settings (OpenAI, HydraDB, Supabase)
+4. Set production Supabase redirect URL to `https://<your-domain>/auth/callback`
+5. Deploy — no additional infrastructure required
 
 ---
 
 ### Future Roadmap
 
-- [ ] Per-user authentication + isolated sub-tenants
+- [ ] MFA and invite-only registration
 - [ ] Memory list, edit, and delete UI
 - [ ] Streaming answers from OpenAI
 - [ ] `infer: true` for richer entity extraction on save
@@ -566,6 +528,5 @@ The speed that matters in a hackathon isn't typing speed. It's the time between 
 ---
 
 <div align="center">
-<img src="docs/screenshots/SecondBrain_Footer.svg" width="100%" alt="Second Brain — Built for the Cursor Hackathon · Powered by HydraDB and OpenAI gpt-4o-mini · Single-user MVP · No auth · MIT License">
+<img src="docs/screenshots/SecondBrain_Footer.svg" width="100%" alt="Second Brain — Built for the Cursor Hackathon · Powered by HydraDB and OpenAI gpt-4o-mini · Supabase Auth · Per-user memory isolation · MIT License">
 </div>
->>>>>>> origin/main

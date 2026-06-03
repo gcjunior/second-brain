@@ -85,8 +85,8 @@ async function captureAskTabWithCitations(page, filename) {
   await page.waitForSelector("#question-input");
   await page.locator("#question-input").fill("Where did I meet Alex?");
   await page.getByRole("button", { name: "Ask Second Brain" }).click();
-  await page.getByRole("heading", { name: "Retrieved Sources" }).waitFor();
-  await page.getByText("Source 1", { exact: true }).waitFor();
+  await page.getByText("Answer generated").waitFor({ timeout: 60_000 });
+  await page.getByRole("heading", { name: "Answer" }).waitFor();
 
   await page.screenshot({
     path: join(outDir, filename),

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Code2, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,10 +31,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleOAuth(
-    provider: "google" | "github" | "azure",
-    label: string,
-  ) {
+  async function handleOAuth(provider: "google", label: string) {
     setLoading(true);
     try {
       const supabase = createClient();
@@ -126,24 +123,6 @@ export function AuthForm({ mode }: AuthFormProps) {
           >
             <Mail className="size-4" aria-hidden />
             Continue with Google
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={loading}
-            onClick={() => handleOAuth("github", "GitHub")}
-          >
-            <Code2 className="size-4" aria-hidden />
-            Continue with GitHub
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={loading}
-            onClick={() => handleOAuth("azure", "Microsoft")}
-          >
-            <Mail className="size-4" aria-hidden />
-            Continue with Microsoft
           </Button>
         </div>
 

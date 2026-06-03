@@ -21,12 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_ASK_LENGTH, MAX_SAVE_LENGTH } from "@/lib/constants";
-import type {
-  AskResponse,
-  MemorySource,
-  SaveMemoryResponse,
-  WorkspaceMode,
-} from "@/lib/types";
+import type { AskResponse, SaveMemoryResponse, WorkspaceMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const tabTriggerClassName = cn(
@@ -62,7 +57,6 @@ export function MemoryInputCard() {
   const [text, setText] = useState("");
   const [status, setStatus] = useState<StatusState>({ type: "idle" });
   const [answer, setAnswer] = useState<string | null>(null);
-  const [sources, setSources] = useState<MemorySource[]>([]);
 
   const isInputMode = mode === "save" || mode === "ask";
   const isLoading = status.type === "loading" && isInputMode;
@@ -88,7 +82,6 @@ export function MemoryInputCard() {
 
   function resetResults() {
     setAnswer(null);
-    setSources([]);
   }
 
   async function handleSave() {
@@ -156,14 +149,12 @@ export function MemoryInputCard() {
       }
 
       setAnswer(data.answer);
-      setSources(data.sources);
       setStatus({ type: "success", message: "Answer ready." });
       toast.success("Answer generated");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to get an answer";
       setAnswer(null);
-      setSources([]);
       setStatus({ type: "error", message });
       toast.error(message);
     }
@@ -356,7 +347,6 @@ export function MemoryInputCard() {
         mode={mode}
         isLoading={isLoading && mode === "ask"}
         answer={answer}
-        sources={sources}
       />
     </div>
   );
